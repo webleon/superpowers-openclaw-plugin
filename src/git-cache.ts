@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import * as fs from "node:fs";
 import { get as httpsGet } from "node:https";
 import { dirname, join } from "node:path";
@@ -34,6 +34,8 @@ interface GitHubRepo {
 
 const METADATA_FILE = "superpowers-cache.json";
 const LOCK_DIR = ".sync-lock";
+const LOCK_WAIT_MS = 30000;
+const STALE_LOCK_MS = 60000;
 
 export function getCachePaths(pluginDir: string): CachePaths {
   const cacheDir = join(pluginDir, ".superpowers-cache");
@@ -45,8 +47,15 @@ export function getCachePaths(pluginDir: string): CachePaths {
 
 export async function ensureSkillsCache(pluginDir: string, repoUrl: string, githubToken?: string): Promise<GitResult & CachePaths> {
   const paths = getCachePaths(pluginDir);
-  if (existsSync(join(paths.cacheDir, METADATA_FILE)) && existsSync(paths.skillsDir)) {
+  if (isCacheReady(paths)) {
     return { ...paths, success: true, message: "Skills already cached" };
+  }
+
+  if (existsSync(join(paths.cacheDir, LOCK_DIR))) {
+    const ready = await waitForCacheReady(paths, LOCK_WAIT_MS);
+    if (ready) {
+      return { ...paths, success: true, message: "Skills became available while another sync was in progress" };
+    }
   }
 
   const result = await syncSkillsCache(paths.cacheDir, repoUrl, githubToken);
@@ -199,7 +208,7 @@ async function requestWithRetry(url: string, githubToken: string | undefined, re
 
 async function withCacheLock<T>(cacheDir: string, work: () => Promise<T>): Promise<T> {
   const lockPath = join(cacheDir, LOCK_DIR);
-  const deadline = Date.now() + 30000;
+  const deadline = Date.now() + LOCK_WAIT_MS;
 
   while (true) {
     try {
@@ -209,6 +218,8 @@ async function withCacheLock<T>(cacheDir: string, work: () => Promise<T>): Promi
       if (!isAlreadyExistsError(error)) {
         throw error;
       }
+
+      clearStaleLock(lockPath);
 
       if (Date.now() >= deadline) {
         throw new Error("Timed out waiting for skills cache lock");
@@ -222,6 +233,40 @@ async function withCacheLock<T>(cacheDir: string, work: () => Promise<T>): Promi
     return await work();
   } finally {
     rmSync(lockPath, { recursive: true, force: true });
+  }
+}
+
+function isCacheReady(paths: CachePaths): boolean {
+  return existsSync(join(paths.cacheDir, METADATA_FILE)) && existsSync(paths.skillsDir);
+}
+
+async function waitForCacheReady(paths: CachePaths, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  const lockPath = join(paths.cacheDir, LOCK_DIR);
+
+  while (Date.now() < deadline) {
+    if (isCacheReady(paths)) {
+      return true;
+    }
+    clearStaleLock(lockPath);
+    await sleep(250);
+  }
+
+  return isCacheReady(paths);
+}
+
+function clearStaleLock(lockPath: string): void {
+  if (!existsSync(lockPath)) {
+    return;
+  }
+
+  try {
+    const ageMs = Date.now() - statSync(lockPath).mtimeMs;
+    if (ageMs >= STALE_LOCK_MS) {
+      rmSync(lockPath, { recursive: true, force: true });
+    }
+  } catch {
+    // Ignore lock inspection failures and let the normal wait/retry path continue.
   }
 }
 

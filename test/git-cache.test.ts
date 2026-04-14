@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { getCachePaths, getGitStatus } from "../src/git-cache.ts";
+import { ensureSkillsCache, getCachePaths, getGitStatus } from "../src/git-cache.ts";
 
 test("getCachePaths keeps upstream skills under a plugin-local cache directory", () => {
   const paths = getCachePaths("/plugins/superpowers-openclaw-plugin");
@@ -24,4 +24,22 @@ test("getGitStatus tolerates sync lock directories without metadata", () => {
   assert.equal(result.success, false);
   assert.equal(result.loaded, false);
   rmSync(cacheDir, { recursive: true, force: true });
+});
+
+test("ensureSkillsCache returns existing cache even when a sync lock directory remains", async () => {
+  const pluginDir = mkdtempSync("/tmp/sp-plugin-test-");
+  const paths = getCachePaths(pluginDir);
+  mkdirSync(paths.skillsDir, { recursive: true });
+  mkdirSync(join(paths.cacheDir, ".sync-lock"));
+  writeFileSync(join(paths.cacheDir, "superpowers-cache.json"), JSON.stringify({
+    repoUrl: "https://github.com/obra/superpowers.git",
+    commit: "917e5f53b16b115b70a3a355ed5f4993b9f8b73d",
+    date: "2026-04-06T22:48:58Z",
+  }), "utf8");
+
+  const result = await ensureSkillsCache(pluginDir, "https://github.com/obra/superpowers.git");
+  assert.equal(result.success, true);
+  assert.match(result.message, /Skills already cached/);
+
+  rmSync(pluginDir, { recursive: true, force: true });
 });
