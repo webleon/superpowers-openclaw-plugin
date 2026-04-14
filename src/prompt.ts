@@ -152,10 +152,25 @@ export function buildPromptContext(
     available || "- No upstream skills loaded.",
   );
 
-  for (const match of selected) {
-    const skill = skills.get(match.name);
-    if (!skill) continue;
-    sections.push("", `## ${skill.name}`, skill.markdown);
+  const suggested = selected
+    .filter((match) => match.name !== "using-superpowers")
+    .map((match) => {
+      const reasonParts = [
+        ...match.matchedKeywords.slice(0, 3),
+        ...(match.usedSuperpowersBoost ? ["superpowers"] : []),
+      ];
+      const reason = reasonParts.length > 0 ? ` (${reasonParts.join(", ")})` : "";
+      return `- ${match.name}${reason}`;
+    })
+    .join("\n");
+
+  if (suggested) {
+    sections.push(
+      "",
+      "Suggested skills for this request:",
+      suggested,
+      "Load a suggested skill with `sp_skill` before using it in the answer.",
+    );
   }
 
   return sections.join("\n");

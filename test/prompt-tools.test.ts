@@ -70,6 +70,16 @@ test("buildPromptContext names sp_skill as the invocation tool", () => {
   assert.match(context, /Do not claim to be using a Superpowers skill/);
 });
 
+test("buildPromptContext lists suggested skills without inlining full skill markdown", () => {
+  const context = buildPromptContext(registry(), [
+    { name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false },
+    { name: "brainstorming", matchedKeywords: ["比较方案", "取舍"], usedSuperpowersBoost: true },
+  ]);
+  assert.match(context, /Suggested skills for this request:/);
+  assert.match(context, /- brainstorming \(比较方案, 取舍, superpowers\)/);
+  assert.doesNotMatch(context, /# Brainstorming/);
+});
+
 test("buildPromptContext includes the active skill label instruction", () => {
   const context = buildPromptContext(
     registry(),
