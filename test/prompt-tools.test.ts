@@ -225,10 +225,12 @@ test("sp_status reports the last real activation", async () => {
   });
 
   const result = await tools.spStatus.execute("call-3", {});
-  assert.match(result.content[0].text, /Last activation: brainstorming/);
-  assert.match(result.content[0].text, /Activation source: sp_skill/);
-  assert.match(result.content[0].text, /Matched keywords: 方案, 取舍/);
-  assert.match(result.content[0].text, /Superpowers boost: true/);
-  assert.match(result.content[0].text, /Pending reply label: brainstorming/);
-  assert.match(result.content[0].text, /Persistent active skill: none/);
+  assert.match(result.content[0].text, /\[SP_STATUS_BEGIN\]/);
+  assert.match(result.content[0].text, /last_activation=brainstorming/);
+  assert.match(result.content[0].text, /activation_source=sp_skill/);
+  assert.match(result.content[0].text, /matched_keywords=方案,取舍/);
+  assert.match(result.content[0].text, /superpowers_boost=true/);
+  assert.match(result.content[0].text, /pending_reply_label=brainstorming/);
+  assert.match(result.content[0].text, /persistent_active_skill=none/);
+  assert.match(result.content[0].text, /\[SP_STATUS_END\]/);
 });

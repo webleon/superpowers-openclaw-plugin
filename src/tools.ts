@@ -46,6 +46,12 @@ function text(content: string): ToolResult {
   return { content: [{ type: "text", text: content }] };
 }
 
+function statusValue(value: string | number | boolean | undefined): string {
+  if (value === undefined) return "none";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  return String(value);
+}
+
 export function createTools(input: ToolFactoryInput): {
   spSkill: ToolDefinition;
   spUpdate: ToolDefinition;
@@ -127,21 +133,23 @@ export function createTools(input: ToolFactoryInput): {
       const lastActivation = input.getLastActivation();
       const pendingReplyLabel = input.getPendingReplyLabel();
       return text([
-        `Repo: ${input.repoUrl}`,
-        `Loaded skills: ${input.skills.size}`,
-        `GitHub token configured: ${input.githubTokenConfigured}`,
-        `Cache loaded: ${status.loaded}`,
-        status.commit ? `Commit: ${status.commit}` : undefined,
-        status.date ? `Date: ${status.date}` : undefined,
-        `Status: ${status.message}`,
-        lastActivation ? `Last activation: ${lastActivation.skillName}` : "Last activation: none",
-        lastActivation ? `Activated at: ${lastActivation.activatedAt}` : undefined,
-        lastActivation ? `Activation source: ${lastActivation.source}` : undefined,
-        lastActivation ? `Matched keywords: ${lastActivation.matchedKeywords.join(", ") || "none"}` : undefined,
-        lastActivation ? `Superpowers boost: ${lastActivation.usedSuperpowersBoost}` : undefined,
-        pendingReplyLabel ? `Pending reply label: ${pendingReplyLabel.name}` : "Pending reply label: none",
-        "Persistent active skill: none",
-      ].filter(Boolean).join("\n"));
+        "[SP_STATUS_BEGIN]",
+        `repo=${statusValue(input.repoUrl)}`,
+        `loaded_skills=${statusValue(input.skills.size)}`,
+        `github_token_configured=${statusValue(input.githubTokenConfigured)}`,
+        `cache_loaded=${statusValue(status.loaded)}`,
+        `cache_commit=${statusValue(status.commit)}`,
+        `cache_date=${statusValue(status.date)}`,
+        `cache_status=${statusValue(status.message)}`,
+        `last_activation=${statusValue(lastActivation?.skillName)}`,
+        `activated_at=${statusValue(lastActivation?.activatedAt)}`,
+        `activation_source=${statusValue(lastActivation?.source)}`,
+        `matched_keywords=${statusValue(lastActivation?.matchedKeywords.join(",") || "none")}`,
+        `superpowers_boost=${statusValue(lastActivation?.usedSuperpowersBoost)}`,
+        `pending_reply_label=${statusValue(pendingReplyLabel?.name)}`,
+        "persistent_active_skill=none",
+        "[SP_STATUS_END]",
+      ].join("\n"));
     },
   };
 
