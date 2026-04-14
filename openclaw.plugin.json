@@ -1,35 +1,36 @@
 {
-  "id": "superpowers-bridge",
-  "name": "Superpowers Bridge",
-  "description": "Bridge to Superpowers workflow skills - auto-fetches from GitHub",
-  "version": "2.1.0",
+  "id": "openclaw-superpowers-plugin",
+  "name": "OpenClaw Superpowers Plugin",
+  "description": "Bridge to Superpowers workflow skills from obra/superpowers",
+  "version": "0.1.0",
   "kind": "extension",
+  "contracts": {
+    "tools": ["sp_skill", "sp_update", "sp_status"]
+  },
+  "skills": ["skills/openclaw-superpowers/SKILL.md"],
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "enabled": {
-        "type": "boolean",
-        "default": true
-      },
       "skillsRepo": {
         "type": "string",
         "default": "https://github.com/obra/superpowers.git",
-        "description": "GitHub repository URL for Superpowers skills"
+        "description": "Git repository URL for upstream Superpowers skills"
       },
       "docsPath": {
         "type": "string",
-        "default": "docs/superpowers"
+        "default": "docs/superpowers",
+        "description": "Default path for Superpowers design and plan documents"
       },
       "autoDetectCode": {
         "type": "boolean",
         "default": true,
-        "description": "Auto-detect code tasks and load relevant skills"
+        "description": "Auto-detect relevant Superpowers skills from prompt text"
       },
       "autoUpdate": {
         "type": "boolean",
         "default": false,
-        "description": "Auto-update skills on plugin start (not recommended)"
+        "description": "Run git pull for upstream skills when the plugin starts"
       }
     }
   }
