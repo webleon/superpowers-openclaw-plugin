@@ -66,6 +66,8 @@ test("buildPromptContext names sp_skill as the invocation tool", () => {
   ]);
   assert.match(context, /sp_skill/);
   assert.match(context, /using-superpowers/);
+  assert.match(context, /must call `sp_skill`/);
+  assert.match(context, /Do not claim to be using a Superpowers skill/);
 });
 
 test("buildPromptContext includes the active skill label instruction", () => {

@@ -127,6 +127,8 @@ export function buildPromptContext(
     "",
     "Superpowers skills from obra/superpowers are available through `sp_skill`.",
     "Use `sp_skill` as the OpenClaw equivalent of invoking a Superpowers skill.",
+    "If you decide to use any upstream Superpowers skill such as `brainstorming`, `writing-plans`, or `systematic-debugging`, you must call `sp_skill` for that skill before giving any skill-based answer.",
+    "Do not claim to be using a Superpowers skill unless `sp_skill` has already successfully loaded it in the current turn.",
     "Use `sp_status` to inspect the cache and `sp_update` only when updates are requested or freshness is required.",
   ];
 
