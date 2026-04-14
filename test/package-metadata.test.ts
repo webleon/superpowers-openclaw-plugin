@@ -26,3 +26,13 @@ test("manifest config schema omits duplicate enabled toggle", () => {
   assert.equal(manifest.configSchema.properties.enabled, undefined);
   assert.equal(manifest.configSchema.additionalProperties, false);
 });
+
+test("entrypoint uses definePluginEntry and namespaced tool registrations", () => {
+  const entrypoint = readFileSync("index.ts", "utf8");
+  assert.match(entrypoint, /definePluginEntry/);
+  assert.match(entrypoint, /spSkill/);
+  assert.match(entrypoint, /spUpdate/);
+  assert.match(entrypoint, /spStatus/);
+  assert.doesNotMatch(entrypoint, /update_superpowers_skills/);
+  assert.doesNotMatch(entrypoint, /superpowers_version/);
+});
