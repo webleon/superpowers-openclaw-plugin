@@ -133,9 +133,14 @@ export function buildPromptContext(
   if (activeSkill) {
     sections.push(
       "",
-      "When answering the user, prepend exactly this italicized line before all other content:",
+      "When answering the user, format the start of the same reply exactly like this:",
       buildActivationLabel(activeSkill),
+      "",
+      "───",
+      "",
+      "Then continue with the actual answer.",
       "Only show this label after a Superpowers skill has been successfully loaded through `sp_skill`.",
+      "Show the label exactly once, at the top of the same reply, and never as a separate message.",
     );
   }
 

@@ -75,6 +75,8 @@ test("buildPromptContext includes the active skill label instruction", () => {
     { name: "brainstorming", indicators: ["方案", "取舍", "superpowers"] },
   );
   assert.match(context, /\*⚡ brainstorming \| 方案, 取舍, superpowers\*/);
+  assert.match(context, /───/);
+  assert.match(context, /same reply/);
 });
 
 test("deriveActiveSkillLabel returns null for using-superpowers", () => {
