@@ -44,6 +44,7 @@ export default definePluginEntry({
       cacheDir: paths.cacheDir,
       getLatestMatches: () => latestMatches,
       getLastActivation: () => lastActivation,
+      getPendingReplyLabel: () => pendingReplyLabel,
       setLastActivation: (activation) => {
         lastActivation = activation;
       },

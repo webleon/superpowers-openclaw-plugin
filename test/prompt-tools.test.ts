@@ -125,6 +125,7 @@ test("sp_skill returns OpenClaw content format", async () => {
     cacheDir: "/missing",
     getLatestMatches: () => [{ name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false }],
     getLastActivation: () => lastActivation,
+    getPendingReplyLabel: () => null,
     setLastActivation: (nextActivation) => {
       lastActivation = nextActivation;
     },
@@ -159,6 +160,7 @@ test("sp_skill stores active label only after successful non-base skill load", a
     cacheDir: "/missing",
     getLatestMatches: () => [{ name: "brainstorming", matchedKeywords: ["方案", "取舍"], usedSuperpowersBoost: true }],
     getLastActivation: () => lastActivation,
+    getPendingReplyLabel: () => null,
     setLastActivation: (nextActivation) => {
       lastActivation = nextActivation;
     },
@@ -195,6 +197,7 @@ test("sp_status reports the last real activation", async () => {
       usedSuperpowersBoost: true,
       source: "sp_skill",
     }),
+    getPendingReplyLabel: () => ({ name: "brainstorming", indicators: ["方案", "取舍", "superpowers"] }),
     setLastActivation: () => {},
     setActiveSkill: () => {},
     reloadSkills: () => registry(),
@@ -206,4 +209,6 @@ test("sp_status reports the last real activation", async () => {
   assert.match(result.content[0].text, /Activation source: sp_skill/);
   assert.match(result.content[0].text, /Matched keywords: 方案, 取舍/);
   assert.match(result.content[0].text, /Superpowers boost: true/);
+  assert.match(result.content[0].text, /Pending reply label: brainstorming/);
+  assert.match(result.content[0].text, /Persistent active skill: none/);
 });

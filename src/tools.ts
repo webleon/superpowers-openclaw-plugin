@@ -35,6 +35,7 @@ export interface ToolFactoryInput {
   cacheDir: string;
   getLatestMatches(): SkillMatch[];
   getLastActivation(): ActivationRecord | null;
+  getPendingReplyLabel(): ActiveSkillLabel | null;
   setLastActivation(activation: ActivationRecord | null): void;
   setActiveSkill(activeSkill: ActiveSkillLabel | null): void;
   reloadSkills(): Map<string, SkillRecord>;
@@ -108,6 +109,7 @@ export function createTools(input: ToolFactoryInput): {
     async execute() {
       const status = getGitStatus(input.cacheDir, input.repoUrl);
       const lastActivation = input.getLastActivation();
+      const pendingReplyLabel = input.getPendingReplyLabel();
       return text([
         `Repo: ${input.repoUrl}`,
         `Loaded skills: ${input.skills.size}`,
@@ -121,6 +123,8 @@ export function createTools(input: ToolFactoryInput): {
         lastActivation ? `Activation source: ${lastActivation.source}` : undefined,
         lastActivation ? `Matched keywords: ${lastActivation.matchedKeywords.join(", ") || "none"}` : undefined,
         lastActivation ? `Superpowers boost: ${lastActivation.usedSuperpowersBoost}` : undefined,
+        pendingReplyLabel ? `Pending reply label: ${pendingReplyLabel.name}` : "Pending reply label: none",
+        "Persistent active skill: none",
       ].filter(Boolean).join("\n"));
     },
   };
