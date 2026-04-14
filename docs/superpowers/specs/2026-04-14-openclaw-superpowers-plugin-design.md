@@ -38,7 +38,7 @@ Instead, it will maintain a local Git cache:
 - Default source repository: `https://github.com/obra/superpowers.git`.
 - Configurable through `skillsRepo`.
 - Cloned on first use when the cache is missing.
-- Updated through an explicit `update_superpowers_skills` tool.
+- Updated through an explicit `sp_update` tool.
 - Optional startup update through `autoUpdate`, defaulting to `false`.
 
 The cache path should be stable for each plugin installation and ignored by Git/package publishing.
@@ -60,15 +60,15 @@ The prompt injection should be compact by default:
 - Include a concise list of available skills and descriptions.
 - Include selected full skill content only when auto-detection confidently matches the user's prompt.
 
-The `skill` tool remains the main path for loading full skill content on demand.
+The `sp_skill` tool remains the main path for loading full skill content on demand.
 
 ## Tools
 
 The plugin will expose three tools:
 
-- `skill`: accepts a skill name and returns the full skill body plus metadata.
-- `update_superpowers_skills`: pulls the latest upstream skills, reloads the in-memory skill registry, and returns the update result.
-- `superpowers_version`: returns the cached upstream commit, date, and repository URL.
+- `sp_skill`: accepts a skill name and returns the full skill body plus metadata.
+- `sp_update`: pulls the latest upstream skills, reloads the in-memory skill registry, and returns the update result.
+- `sp_status`: returns the cached upstream commit, date, repository URL, and loaded skill count.
 
 Tool results should be structured enough for an assistant to explain failures and continue when possible.
 
@@ -109,7 +109,7 @@ The plugin should degrade rather than crash OpenClaw:
 - If `git clone` fails, log the failure and register tools that report the cache is unavailable.
 - If a single skill file cannot be parsed, skip that skill and log a warning.
 - If `git pull` fails, keep the previous loaded skill registry.
-- If no skills are loaded, inject no skill-specific context and make `skill` return a clear available-skills error.
+- If no skills are loaded, inject no skill-specific context and make `sp_skill` return a clear available-skills error.
 
 Shell execution must avoid interpolating untrusted values into command strings where possible. Prefer `spawnSync` or `execFileSync` with argument arrays for `git` commands.
 
@@ -125,9 +125,9 @@ Add lightweight verification that can run without OpenClaw:
 Manual verification should include:
 
 - Local source install path.
-- `skill` tool lookup.
-- `superpowers_version` result after cache clone.
-- `update_superpowers_skills` reload behavior.
+- `sp_skill` tool lookup.
+- `sp_status` result after cache clone.
+- `sp_update` reload behavior.
 - npm package dry run with `npm pack --dry-run`.
 
 ## Documentation
