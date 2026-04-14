@@ -36,3 +36,13 @@ test("entrypoint uses definePluginEntry and namespaced tool registrations", () =
   assert.doesNotMatch(entrypoint, /update_superpowers_skills/);
   assert.doesNotMatch(entrypoint, /superpowers_version/);
 });
+
+test("readme documents owned install paths and sp tools", () => {
+  const readme = readFileSync("README.md", "utf8");
+  assert.match(readme, /openclaw-superpowers-plugin/);
+  assert.match(readme, /webleon\/superpowers-openclaw-plugin/);
+  assert.match(readme, /sp_skill/);
+  assert.match(readme, /sp_update/);
+  assert.match(readme, /sp_status/);
+  assert.doesNotMatch(readme, /@vruru\/superpowers-bridge/);
+});
