@@ -65,6 +65,16 @@ export interface ActiveSkillLabel {
   indicators: string[];
 }
 
+export function isStatusLikePrompt(prompt: string): boolean {
+  const promptLower = prompt.toLowerCase();
+  return promptLower.includes("sp_status")
+    || promptLower.includes("sp_update")
+    || promptLower.includes("superpowers 状态")
+    || promptLower.includes("最近一次真实激活")
+    || promptLower.includes("pending reply label")
+    || promptLower.includes("persistent active skill");
+}
+
 export function detectRelevantSkills(prompt: string, skills: Map<string, SkillRecord>): SkillMatch[] {
   const promptLower = prompt.toLowerCase();
   const matches = new Map<string, SkillMatch>();
@@ -116,6 +126,7 @@ export function buildPromptContext(
   skills: Map<string, SkillRecord>,
   selected: SkillMatch[],
   activeSkill?: ActiveSkillLabel | null,
+  suppressActivationLabel = false,
 ): string {
   const available = [...skills.values()]
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -132,7 +143,13 @@ export function buildPromptContext(
     "Use `sp_status` to inspect the cache and `sp_update` only when updates are requested or freshness is required.",
   ];
 
-  if (activeSkill) {
+  if (suppressActivationLabel) {
+    sections.push(
+      "",
+      "This request is for status or maintenance output.",
+      "Do not prepend any activation label or skill banner to this reply.",
+    );
+  } else if (activeSkill) {
     sections.push(
       "",
       "When answering the user, format the start of the same reply exactly like this:",

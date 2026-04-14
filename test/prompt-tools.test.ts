@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPromptContext, deriveActiveSkillLabel, detectRelevantSkills } from "../src/prompt.ts";
+import { buildPromptContext, deriveActiveSkillLabel, detectRelevantSkills, isStatusLikePrompt } from "../src/prompt.ts";
 import { createTools } from "../src/tools.ts";
 import type { SkillRecord } from "../src/skills.ts";
 
@@ -99,6 +99,23 @@ test("buildPromptContext can omit label when no pending reply label exists", () 
   );
   assert.doesNotMatch(context, /same reply/);
   assert.doesNotMatch(context, /\*⚡/);
+});
+
+test("isStatusLikePrompt detects status-oriented tool requests", () => {
+  assert.equal(isStatusLikePrompt("请调用 sp_status，完整告诉我最近一次真实激活。"), true);
+  assert.equal(isStatusLikePrompt("请调用 sp_update 更新缓存。"), true);
+  assert.equal(isStatusLikePrompt("用 superpowers 帮我比较几个实现方案。"), false);
+});
+
+test("buildPromptContext can suppress activation labels for status-like replies", () => {
+  const context = buildPromptContext(
+    registry(),
+    [{ name: "brainstorming", matchedKeywords: ["方案"], usedSuperpowersBoost: false }],
+    { name: "brainstorming", indicators: ["方案", "superpowers"] },
+    true,
+  );
+  assert.match(context, /Do not prepend any activation label or skill banner to this reply/);
+  assert.doesNotMatch(context, /When answering the user, format the start of the same reply exactly like this:/);
 });
 
 test("deriveActiveSkillLabel returns null for using-superpowers", () => {

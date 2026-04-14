@@ -4,7 +4,7 @@ import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { normalizeConfig } from "./src/config.ts";
 import { ensureSkillsCache, getCachePaths, updateSkillsCache } from "./src/git-cache.ts";
 import type { ActiveSkillLabel, SkillMatch } from "./src/prompt.ts";
-import { buildPromptContext, detectRelevantSkills } from "./src/prompt.ts";
+import { buildPromptContext, detectRelevantSkills, isStatusLikePrompt } from "./src/prompt.ts";
 import { loadSkills } from "./src/skills.ts";
 import { createTools } from "./src/tools.ts";
 
@@ -62,17 +62,20 @@ export default definePluginEntry({
     const promptHook = (event: { prompt?: string }) => {
       if (skills.size === 0) return {};
       const prompt = event.prompt ?? "";
+      const suppressActivationLabel = isStatusLikePrompt(prompt);
       const selected = config.autoDetectCode
         ? detectRelevantSkills(prompt, skills)
         : skills.has("using-superpowers")
           ? [{ name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false }]
           : [];
       latestMatches = selected;
-      const labelForThisReply = pendingReplyLabel;
-      pendingReplyLabel = null;
+      const labelForThisReply = suppressActivationLabel ? null : pendingReplyLabel;
+      if (!suppressActivationLabel) {
+        pendingReplyLabel = null;
+      }
 
       return {
-        appendSystemContext: buildPromptContext(skills, selected, labelForThisReply),
+        appendSystemContext: buildPromptContext(skills, selected, labelForThisReply, suppressActivationLabel),
       };
     };
 
