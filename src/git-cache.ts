@@ -43,18 +43,18 @@ export function getCachePaths(pluginDir: string): CachePaths {
   };
 }
 
-export async function ensureSkillsCache(pluginDir: string, repoUrl: string): Promise<GitResult & CachePaths> {
+export async function ensureSkillsCache(pluginDir: string, repoUrl: string, githubToken?: string): Promise<GitResult & CachePaths> {
   const paths = getCachePaths(pluginDir);
   if (existsSync(join(paths.cacheDir, METADATA_FILE)) && existsSync(paths.skillsDir)) {
     return { ...paths, success: true, message: "Skills already cached" };
   }
 
-  const result = await syncSkillsCache(paths.cacheDir, repoUrl);
+  const result = await syncSkillsCache(paths.cacheDir, repoUrl, githubToken);
   return { ...paths, ...result };
 }
 
-export async function updateSkillsCache(cacheDir: string, repoUrl: string): Promise<GitResult> {
-  return syncSkillsCache(cacheDir, repoUrl);
+export async function updateSkillsCache(cacheDir: string, repoUrl: string, githubToken?: string): Promise<GitResult> {
+  return syncSkillsCache(cacheDir, repoUrl, githubToken);
 }
 
 export function getGitStatus(cacheDir: string, repoUrl: string): GitStatus {
@@ -79,7 +79,7 @@ export function getGitStatus(cacheDir: string, repoUrl: string): GitStatus {
   }
 }
 
-async function syncSkillsCache(cacheDir: string, repoUrl: string): Promise<GitResult> {
+async function syncSkillsCache(cacheDir: string, repoUrl: string, githubToken?: string): Promise<GitResult> {
   const repo = parseGitHubRepo(repoUrl);
   if (!repo) {
     return { success: false, message: `Only GitHub repo URLs are supported for safe sync: ${repoUrl}` };
@@ -91,10 +91,10 @@ async function syncSkillsCache(cacheDir: string, repoUrl: string): Promise<GitRe
       const commit = await fetchJson<{
         sha: string;
         commit: { committer?: { date?: string }; author?: { date?: string } };
-      }>(`https://api.github.com/repos/${repo.owner}/${repo.repo}/commits/${repo.branch}`);
+      }>(`https://api.github.com/repos/${repo.owner}/${repo.repo}/commits/${repo.branch}`, githubToken);
       const tree = await fetchJson<{
         tree: Array<{ path: string; type: string; url: string }>;
-      }>(`https://api.github.com/repos/${repo.owner}/${repo.repo}/git/trees/${commit.sha}?recursive=1`);
+      }>(`https://api.github.com/repos/${repo.owner}/${repo.repo}/git/trees/${commit.sha}?recursive=1`, githubToken);
 
       const skillFiles = tree.tree.filter((entry) => entry.type === "blob" && entry.path.startsWith("skills/"));
       const nextSkillsDir = mkdtempSync(join(cacheDir, "skills.next-"));
@@ -105,7 +105,7 @@ async function syncSkillsCache(cacheDir: string, repoUrl: string): Promise<GitRe
           const target = join(nextSkillsDir, entry.path.slice("skills/".length));
           mkdirSync(dirname(target), { recursive: true });
           const source = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${commit.sha}/${entry.path}`;
-          writeFileSync(target, await fetchText(source), "utf8");
+          writeFileSync(target, await fetchText(source, githubToken), "utf8");
         }
 
         rmSync(skillsDir, { recursive: true, force: true });
@@ -138,29 +138,29 @@ function parseGitHubRepo(repoUrl: string): GitHubRepo | null {
   return null;
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  return JSON.parse(await fetchText(url)) as T;
+async function fetchJson<T>(url: string, githubToken?: string): Promise<T> {
+  return JSON.parse(await fetchText(url, githubToken)) as T;
 }
 
-async function fetchText(url: string): Promise<string> {
-  return requestWithRetry(url, 2);
+async function fetchText(url: string, githubToken?: string): Promise<string> {
+  return requestWithRetry(url, githubToken, 2);
 }
 
-async function requestText(url: string, redirectCount: number): Promise<string> {
+async function requestText(url: string, githubToken: string | undefined, redirectCount: number): Promise<string> {
   if (redirectCount > 5) {
     throw new Error(`Too many redirects: ${url}`);
   }
 
   return new Promise((resolve, reject) => {
     const request = httpsGet(url, {
-      headers: { "User-Agent": "superpowers-openclaw-plugin" },
+      headers: buildHeaders(githubToken),
     }, (response) => {
       const statusCode = response.statusCode ?? 0;
       const location = response.headers.location;
 
       if (statusCode >= 300 && statusCode < 400 && location) {
         response.resume();
-        resolve(requestText(new URL(location, url).toString(), redirectCount + 1));
+        resolve(requestText(new URL(location, url).toString(), githubToken, redirectCount + 1));
         return;
       }
 
@@ -185,15 +185,15 @@ async function requestText(url: string, redirectCount: number): Promise<string> 
   });
 }
 
-async function requestWithRetry(url: string, retries: number): Promise<string> {
+async function requestWithRetry(url: string, githubToken: string | undefined, retries: number): Promise<string> {
   try {
-    return await requestText(url, 0);
+    return await requestText(url, githubToken, 0);
   } catch (error) {
     if (retries <= 0 || !isTransientNetworkError(error)) {
       throw error;
     }
     await sleep(300);
-    return requestWithRetry(url, retries - 1);
+    return requestWithRetry(url, githubToken, retries - 1);
   }
 }
 
@@ -235,6 +235,15 @@ function isAlreadyExistsError(error: unknown): boolean {
 function isTransientNetworkError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   return /socket hang up|ECONNRESET|ETIMEDOUT|EAI_AGAIN/i.test(error.message);
+}
+
+function buildHeaders(githubToken?: string): Record<string, string> {
+  return githubToken
+    ? {
+        "User-Agent": "superpowers-openclaw-plugin",
+        "Authorization": `Bearer ${githubToken}`,
+      }
+    : { "User-Agent": "superpowers-openclaw-plugin" };
 }
 
 function sleep(ms: number): Promise<void> {

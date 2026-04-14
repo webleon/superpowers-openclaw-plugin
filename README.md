@@ -34,7 +34,8 @@ Enable or configure it in `~/.openclaw/openclaw.json`:
           "autoDetectCode": true,
           "autoUpdate": false,
           "skillsRepo": "https://github.com/obra/superpowers.git",
-          "docsPath": "docs/superpowers"
+          "docsPath": "docs/superpowers",
+          "githubToken": "github_pat_xxx"
         }
       }
     }
@@ -68,6 +69,9 @@ Use that payload with `sp_skill`.
 | `autoDetectCode` | boolean | `true` | Adds compact Superpowers context for matching prompts. |
 | `autoUpdate` | boolean | `false` | Pulls upstream skills when the plugin starts. Keep disabled for predictable startup. |
 | `docsPath` | string | `docs/superpowers` | Default path used by Superpowers planning workflows. |
+| `githubToken` | string | unset | Optional GitHub token used to avoid anonymous rate limits while syncing upstream skills. |
+
+Prefer setting `GITHUB_TOKEN` or `GH_TOKEN` in the OpenClaw gateway environment instead of writing a token into `openclaw.json`.
 
 ## How It Works
 
@@ -82,6 +86,8 @@ The dynamic upstream cache is not listed as OpenClaw native skills in `openclaw.
 ## Update Upstream Skills
 
 Ask the assistant to call `sp_update`. That syncs the upstream skill tree through the plugin's safe update path and refreshes the in-memory registry.
+
+If sync fails with `403 rate limit exceeded`, configure `GITHUB_TOKEN`, `GH_TOKEN`, or `plugins.entries.superpowers-openclaw-plugin.config.githubToken`.
 
 ## Development
 

@@ -28,6 +28,7 @@ test("manifest exposes only the packaged bridge skill", () => {
 test("manifest config schema omits duplicate enabled toggle", () => {
   assert.equal(manifest.configSchema.properties.enabled, undefined);
   assert.equal(manifest.configSchema.additionalProperties, false);
+  assert.equal(manifest.configSchema.properties.githubToken.type, "string");
 });
 
 test("entrypoint uses definePluginEntry and namespaced tool registrations", () => {

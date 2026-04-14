@@ -20,6 +20,8 @@ interface ToolDefinition {
 export interface ToolFactoryInput {
   skills: Map<string, SkillRecord>;
   repoUrl: string;
+  githubTokenConfigured: boolean;
+  githubToken?: string;
   cacheDir: string;
   reloadSkills(): Map<string, SkillRecord>;
   logger: Pick<Console, "info" | "error">;
@@ -66,7 +68,7 @@ export function createTools(input: ToolFactoryInput): {
     description: "Pull the latest upstream Superpowers skills and reload the registry.",
     parameters: { type: "object", properties: {} },
     async execute() {
-      const result = await updateSkillsCache(input.cacheDir, input.repoUrl);
+      const result = await updateSkillsCache(input.cacheDir, input.repoUrl, input.githubToken);
       if (!result.success) return text(`Update failed: ${result.message}`);
 
       const next = input.reloadSkills();
@@ -85,6 +87,7 @@ export function createTools(input: ToolFactoryInput): {
       return text([
         `Repo: ${input.repoUrl}`,
         `Loaded skills: ${input.skills.size}`,
+        `GitHub token configured: ${input.githubTokenConfigured}`,
         `Cache loaded: ${status.loaded}`,
         status.commit ? `Commit: ${status.commit}` : undefined,
         status.date ? `Date: ${status.date}` : undefined,

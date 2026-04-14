@@ -2,7 +2,7 @@
   "id": "superpowers-openclaw-plugin",
   "name": "OpenClaw Superpowers Plugin",
   "description": "Bridge to Superpowers workflow skills from obra/superpowers",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "kind": "extension",
   "contracts": {
     "tools": ["sp_skill", "sp_update", "sp_status"]
@@ -31,6 +31,10 @@
         "type": "boolean",
         "default": false,
         "description": "Run git pull for upstream skills when the plugin starts"
+      },
+      "githubToken": {
+        "type": "string",
+        "description": "Optional GitHub token used to avoid anonymous API rate limits when syncing upstream Superpowers skills"
       }
     }
   }

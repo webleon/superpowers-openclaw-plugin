@@ -41,6 +41,8 @@ test("sp_skill returns OpenClaw content format", async () => {
   const tools = createTools({
     skills: registry(),
     repoUrl: "https://github.com/obra/superpowers.git",
+    githubTokenConfigured: false,
+    githubToken: undefined,
     cacheDir: "/missing",
     reloadSkills: () => registry(),
     logger: console

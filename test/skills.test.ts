@@ -4,11 +4,12 @@ import { normalizeConfig } from "../src/config.ts";
 import { loadSkills, parseSkillMarkdown } from "../src/skills.ts";
 
 test("normalizeConfig applies predictable defaults and no enabled field", () => {
-  const config = normalizeConfig({ autoUpdate: true });
+  const config = normalizeConfig({ autoUpdate: true, githubToken: "test-token" });
   assert.equal(config.skillsRepo, "https://github.com/obra/superpowers.git");
   assert.equal(config.docsPath, "docs/superpowers");
   assert.equal(config.autoDetectCode, true);
   assert.equal(config.autoUpdate, true);
+  assert.equal(config.githubToken, "test-token");
   assert.equal(Object.prototype.hasOwnProperty.call(config, "enabled"), false);
 });
 

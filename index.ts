@@ -17,13 +17,13 @@ export default definePluginEntry({
     const config = normalizeConfig(api.pluginConfig ?? {});
     const paths = getCachePaths(pluginDir);
 
-    const ensureResult = await ensureSkillsCache(pluginDir, config.skillsRepo);
+    const ensureResult = await ensureSkillsCache(pluginDir, config.skillsRepo, config.githubToken);
     if (!ensureResult.success) {
       api.logger.error(`[OpenClaw Superpowers] ${ensureResult.message}`);
     }
 
     if (config.autoUpdate && ensureResult.success) {
-      const updateResult = await updateSkillsCache(paths.cacheDir);
+      const updateResult = await updateSkillsCache(paths.cacheDir, config.skillsRepo, config.githubToken);
       if (!updateResult.success) {
         api.logger.error(`[OpenClaw Superpowers] auto-update failed: ${updateResult.message}`);
       }
@@ -35,6 +35,8 @@ export default definePluginEntry({
     const tools = createTools({
       skills,
       repoUrl: config.skillsRepo,
+      githubTokenConfigured: Boolean(config.githubToken),
+      githubToken: config.githubToken,
       cacheDir: paths.cacheDir,
       reloadSkills: () => loadSkills(paths.skillsDir),
       logger: api.logger,

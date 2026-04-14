@@ -3,6 +3,7 @@ export interface PluginConfig {
   docsPath: string;
   autoDetectCode: boolean;
   autoUpdate: boolean;
+  githubToken?: string;
 }
 
 export const DEFAULT_CONFIG: PluginConfig = {
@@ -10,6 +11,7 @@ export const DEFAULT_CONFIG: PluginConfig = {
   docsPath: "docs/superpowers",
   autoDetectCode: true,
   autoUpdate: false,
+  githubToken: undefined,
 };
 
 export function normalizeConfig(input: Partial<PluginConfig> = {}): PluginConfig {
@@ -22,5 +24,8 @@ export function normalizeConfig(input: Partial<PluginConfig> = {}): PluginConfig
       : DEFAULT_CONFIG.docsPath,
     autoDetectCode: input.autoDetectCode ?? DEFAULT_CONFIG.autoDetectCode,
     autoUpdate: input.autoUpdate ?? DEFAULT_CONFIG.autoUpdate,
+    githubToken: typeof input.githubToken === "string" && input.githubToken.length > 0
+      ? input.githubToken
+      : process.env.GITHUB_TOKEN || process.env.GH_TOKEN || DEFAULT_CONFIG.githubToken,
   };
 }

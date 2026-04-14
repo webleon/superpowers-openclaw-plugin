@@ -34,7 +34,8 @@ openclaw gateway restart
           "autoDetectCode": true,
           "autoUpdate": false,
           "skillsRepo": "https://github.com/obra/superpowers.git",
-          "docsPath": "docs/superpowers"
+          "docsPath": "docs/superpowers",
+          "githubToken": "github_pat_xxx"
         }
       }
     }
@@ -68,6 +69,9 @@ openclaw gateway restart
 | `autoDetectCode` | boolean | `true` | 根据 prompt 匹配并注入精简 Superpowers 上下文。 |
 | `autoUpdate` | boolean | `false` | 插件启动时拉取上游 skills。为了启动稳定，默认关闭。 |
 | `docsPath` | string | `docs/superpowers` | Superpowers 计划/设计流程使用的默认文档路径。 |
+| `githubToken` | string | 未设置 | 可选 GitHub token，用来避免同步上游 skills 时触发匿名 API 限流。 |
+
+更推荐在 OpenClaw gateway 运行环境中设置 `GITHUB_TOKEN` 或 `GH_TOKEN`，而不是把 token 直接写进 `openclaw.json`。
 
 ## 工作方式
 
@@ -82,6 +86,8 @@ openclaw gateway restart
 ## 更新上游 Skills
 
 让 assistant 调用 `sp_update`。插件会通过自身的安全同步路径拉取上游 skill 树，并刷新内存中的 skill registry。
+
+如果出现 `403 rate limit exceeded`，请配置 `GITHUB_TOKEN`、`GH_TOKEN`，或者 `plugins.entries.superpowers-openclaw-plugin.config.githubToken`。
 
 ## 开发
 
