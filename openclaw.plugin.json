@@ -2,7 +2,7 @@
   "id": "superpowers-openclaw-plugin",
   "name": "OpenClaw Superpowers Plugin",
   "description": "Bridge to Superpowers workflow skills from obra/superpowers",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "kind": "extension",
   "contracts": {
     "tools": ["sp_skill", "sp_update", "sp_status"]

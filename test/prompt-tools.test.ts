@@ -79,6 +79,16 @@ test("buildPromptContext includes the active skill label instruction", () => {
   assert.match(context, /same reply/);
 });
 
+test("buildPromptContext can omit label when no pending reply label exists", () => {
+  const context = buildPromptContext(
+    registry(),
+    [{ name: "brainstorming", matchedKeywords: ["方案"], usedSuperpowersBoost: false }],
+    null,
+  );
+  assert.doesNotMatch(context, /same reply/);
+  assert.doesNotMatch(context, /\*⚡/);
+});
+
 test("deriveActiveSkillLabel returns null for using-superpowers", () => {
   assert.equal(deriveActiveSkillLabel("using-superpowers", []), null);
 });

@@ -18,7 +18,7 @@ export default definePluginEntry({
     const config = normalizeConfig(api.pluginConfig ?? {});
     const paths = getCachePaths(pluginDir);
     let latestMatches: SkillMatch[] = [];
-    let activeSkill: ActiveSkillLabel | null = null;
+    let pendingReplyLabel: ActiveSkillLabel | null = null;
 
     const ensureResult = await ensureSkillsCache(pluginDir, config.skillsRepo, config.githubToken);
     if (!ensureResult.success) {
@@ -43,7 +43,7 @@ export default definePluginEntry({
       cacheDir: paths.cacheDir,
       getLatestMatches: () => latestMatches,
       setActiveSkill: (nextActiveSkill) => {
-        activeSkill = nextActiveSkill;
+        pendingReplyLabel = nextActiveSkill;
       },
       reloadSkills: () => loadSkills(paths.skillsDir),
       logger: api.logger,
@@ -62,9 +62,11 @@ export default definePluginEntry({
           ? [{ name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false }]
           : [];
       latestMatches = selected;
+      const labelForThisReply = pendingReplyLabel;
+      pendingReplyLabel = null;
 
       return {
-        appendSystemContext: buildPromptContext(skills, selected, activeSkill),
+        appendSystemContext: buildPromptContext(skills, selected, labelForThisReply),
       };
     };
 
