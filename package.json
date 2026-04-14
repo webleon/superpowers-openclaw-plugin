@@ -1,6 +1,6 @@
 {
   "name": "superpowers-openclaw-plugin",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "OpenClaw plugin that bridges to Superpowers workflow skills from obra/superpowers",
   "type": "module",
   "main": "index.ts",
@@ -8,11 +8,18 @@
     "test": "node --test test/*.test.ts",
     "pack:dry-run": "npm pack --dry-run"
   },
-  "keywords": ["openclaw", "superpowers", "skills", "workflow"],
+  "keywords": [
+    "openclaw",
+    "superpowers",
+    "skills",
+    "workflow"
+  ],
   "author": "webleon",
   "license": "MIT",
   "openclaw": {
-    "extensions": ["./index.ts"],
+    "extensions": [
+      "./index.ts"
+    ],
     "compat": {
       "minApiVersion": 1
     },
