@@ -28,7 +28,7 @@ openclaw gateway restart
 {
   "plugins": {
     "entries": {
-      "openclaw-superpowers-plugin": {
+      "superpowers-openclaw-plugin": {
         "enabled": true,
         "config": {
           "autoDetectCode": true,
@@ -42,7 +42,7 @@ openclaw gateway restart
 }
 ```
 
-插件启用开关使用 `plugins.entries.openclaw-superpowers-plugin.enabled`；不要在 `config` 里再放一个 `enabled`。
+插件启用开关使用 `plugins.entries.superpowers-openclaw-plugin.enabled`；不要在 `config` 里再放一个 `enabled`。
 
 ## 工具
 

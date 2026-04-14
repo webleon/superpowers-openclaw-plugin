@@ -9,17 +9,17 @@ import { createTools } from "./src/tools.ts";
 
 const pluginDir = dirname(fileURLToPath(import.meta.url));
 
-export default definePluginEntry((api) => {
+export default definePluginEntry(async (api) => {
   const config = normalizeConfig(api.pluginConfig ?? {});
   const paths = getCachePaths(pluginDir);
 
-  const ensureResult = ensureSkillsCache(pluginDir, config.skillsRepo);
+  const ensureResult = await ensureSkillsCache(pluginDir, config.skillsRepo);
   if (!ensureResult.success) {
     api.logger.error(`[OpenClaw Superpowers] ${ensureResult.message}`);
   }
 
   if (config.autoUpdate && ensureResult.success) {
-    const updateResult = updateSkillsCache(paths.cacheDir);
+    const updateResult = await updateSkillsCache(paths.cacheDir);
     if (!updateResult.success) {
       api.logger.error(`[OpenClaw Superpowers] auto-update failed: ${updateResult.message}`);
     }

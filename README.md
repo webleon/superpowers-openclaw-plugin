@@ -28,7 +28,7 @@ Enable or configure it in `~/.openclaw/openclaw.json`:
 {
   "plugins": {
     "entries": {
-      "openclaw-superpowers-plugin": {
+      "superpowers-openclaw-plugin": {
         "enabled": true,
         "config": {
           "autoDetectCode": true,
@@ -42,7 +42,7 @@ Enable or configure it in `~/.openclaw/openclaw.json`:
 }
 ```
 
-The plugin-level `enabled` flag belongs on `plugins.entries.openclaw-superpowers-plugin.enabled`; it is not duplicated inside `config`.
+The plugin-level `enabled` flag belongs on `plugins.entries.superpowers-openclaw-plugin.enabled`; it is not duplicated inside `config`.
 
 ## Tools
 
