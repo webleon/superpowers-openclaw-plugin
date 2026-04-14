@@ -19,6 +19,13 @@ function registry(): Map<string, SkillRecord> {
       path: "/cache/skills/systematic-debugging/SKILL.md",
       markdown: "---\nname: systematic-debugging\n---\n# Debugging",
       body: "# Debugging"
+    }],
+    ["brainstorming", {
+      name: "brainstorming",
+      description: "Use when exploring options.",
+      path: "/cache/skills/brainstorming/SKILL.md",
+      markdown: "---\nname: brainstorming\n---\n# Brainstorming",
+      body: "# Brainstorming"
     }]
   ]);
 }
@@ -29,6 +36,17 @@ test("detectRelevantSkills always includes using-superpowers when present", () =
 
 test("detectRelevantSkills adds debugging skill for bug prompts", () => {
   assert.deepEqual(detectRelevantSkills("fix this bug", registry()), ["using-superpowers", "systematic-debugging"]);
+});
+
+test("detectRelevantSkills adds brainstorming for planning-style prompts", () => {
+  assert.deepEqual(detectRelevantSkills("先比较方案和取舍，再决定怎么做", registry()), ["using-superpowers", "brainstorming"]);
+});
+
+test("detectRelevantSkills boosts explicit superpowers requests", () => {
+  assert.deepEqual(
+    detectRelevantSkills("用 superpowers 帮我调试这个报错", registry()),
+    ["using-superpowers", "systematic-debugging"]
+  );
 });
 
 test("buildPromptContext names sp_skill as the invocation tool", () => {
