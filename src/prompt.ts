@@ -54,32 +54,69 @@ const SUPERPOWERS_HINTS: Record<string, string[]> = {
   "finishing-a-development-branch": ["合并", "pr", "merge"],
 };
 
-export function detectRelevantSkills(prompt: string, skills: Map<string, SkillRecord>): string[] {
+export interface SkillMatch {
+  name: string;
+  matchedKeywords: string[];
+  usedSuperpowersBoost: boolean;
+}
+
+export interface ActiveSkillLabel {
+  name: string;
+  indicators: string[];
+}
+
+export function detectRelevantSkills(prompt: string, skills: Map<string, SkillRecord>): SkillMatch[] {
   const promptLower = prompt.toLowerCase();
-  const names = new Set<string>();
+  const matches = new Map<string, SkillMatch>();
+  const usedSuperpowersBoost = mentionsSuperpowers(promptLower);
 
   for (const name of ALWAYS_LOAD) {
-    if (skills.has(name)) names.add(name);
+    if (skills.has(name)) {
+      matches.set(name, {
+        name,
+        matchedKeywords: [],
+        usedSuperpowersBoost: false,
+      });
+    }
   }
 
   for (const [name, keywords] of Object.entries(KEYWORDS)) {
-    if (skills.has(name) && keywords.some((keyword) => promptLower.includes(keyword.toLowerCase()))) {
-      names.add(name);
-    }
+    if (!skills.has(name)) continue;
+    const matchedKeywords = keywords.filter((keyword) => promptLower.includes(keyword.toLowerCase()));
+    if (matchedKeywords.length === 0) continue;
+    matches.set(name, {
+      name,
+      matchedKeywords,
+      usedSuperpowersBoost: false,
+    });
   }
 
-  if (mentionsSuperpowers(promptLower)) {
+  if (usedSuperpowersBoost) {
     for (const [name, keywords] of Object.entries(SUPERPOWERS_HINTS)) {
-      if (skills.has(name) && keywords.some((keyword) => promptLower.includes(keyword.toLowerCase()))) {
-        names.add(name);
-      }
+      if (!skills.has(name)) continue;
+      const matchedKeywords = keywords.filter((keyword) => promptLower.includes(keyword.toLowerCase()));
+      if (matchedKeywords.length === 0) continue;
+
+      const current = matches.get(name);
+      matches.set(name, {
+        name,
+        matchedKeywords: uniqueKeywords([
+          ...(current?.matchedKeywords ?? []),
+          ...matchedKeywords,
+        ]),
+        usedSuperpowersBoost: true,
+      });
     }
   }
 
-  return [...names];
+  return [...matches.values()];
 }
 
-export function buildPromptContext(skills: Map<string, SkillRecord>, selected: string[]): string {
+export function buildPromptContext(
+  skills: Map<string, SkillRecord>,
+  selected: SkillMatch[],
+  activeSkill?: ActiveSkillLabel | null,
+): string {
   const available = [...skills.values()]
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((skill) => `- ${skill.name}: ${skill.description}`)
@@ -91,18 +128,68 @@ export function buildPromptContext(skills: Map<string, SkillRecord>, selected: s
     "Superpowers skills from obra/superpowers are available through `sp_skill`.",
     "Use `sp_skill` as the OpenClaw equivalent of invoking a Superpowers skill.",
     "Use `sp_status` to inspect the cache and `sp_update` only when updates are requested or freshness is required.",
+  ];
+
+  if (activeSkill) {
+    sections.push(
+      "",
+      "When answering the user, prepend exactly this italicized line before all other content:",
+      buildActivationLabel(activeSkill),
+      "Only show this label after a Superpowers skill has been successfully loaded through `sp_skill`.",
+    );
+  }
+
+  sections.push(
     "",
     "Available skills:",
     available || "- No upstream skills loaded.",
-  ];
+  );
 
-  for (const name of selected) {
-    const skill = skills.get(name);
+  for (const match of selected) {
+    const skill = skills.get(match.name);
     if (!skill) continue;
     sections.push("", `## ${skill.name}`, skill.markdown);
   }
 
   return sections.join("\n");
+}
+
+export function deriveActiveSkillLabel(skillName: string, matches: SkillMatch[]): ActiveSkillLabel | null {
+  if (skillName === "using-superpowers") {
+    return null;
+  }
+
+  const match = matches.find((entry) => entry.name === skillName);
+  if (!match) {
+    return { name: skillName, indicators: [] };
+  }
+
+  const indicators = uniqueKeywords([
+    ...match.matchedKeywords.slice(0, 3),
+    ...(match.usedSuperpowersBoost ? ["superpowers"] : []),
+  ]);
+
+  return { name: skillName, indicators };
+}
+
+function buildActivationLabel(activeSkill: ActiveSkillLabel): string {
+  if (activeSkill.indicators.length === 0) {
+    return `*⚡ ${activeSkill.name}*`;
+  }
+
+  return `*⚡ ${activeSkill.name} | ${activeSkill.indicators.join(", ")}*`;
+}
+
+function uniqueKeywords(values: string[]): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
 }
 
 function mentionsSuperpowers(promptLower: string): boolean {

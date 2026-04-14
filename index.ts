@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { normalizeConfig } from "./src/config.ts";
 import { ensureSkillsCache, getCachePaths, updateSkillsCache } from "./src/git-cache.ts";
+import type { ActiveSkillLabel, SkillMatch } from "./src/prompt.ts";
 import { buildPromptContext, detectRelevantSkills } from "./src/prompt.ts";
 import { loadSkills } from "./src/skills.ts";
 import { createTools } from "./src/tools.ts";
@@ -16,6 +17,8 @@ export default definePluginEntry({
   async register(api) {
     const config = normalizeConfig(api.pluginConfig ?? {});
     const paths = getCachePaths(pluginDir);
+    let latestMatches: SkillMatch[] = [];
+    let activeSkill: ActiveSkillLabel | null = null;
 
     const ensureResult = await ensureSkillsCache(pluginDir, config.skillsRepo, config.githubToken);
     if (!ensureResult.success) {
@@ -38,6 +41,10 @@ export default definePluginEntry({
       githubTokenConfigured: Boolean(config.githubToken),
       githubToken: config.githubToken,
       cacheDir: paths.cacheDir,
+      getLatestMatches: () => latestMatches,
+      setActiveSkill: (nextActiveSkill) => {
+        activeSkill = nextActiveSkill;
+      },
       reloadSkills: () => loadSkills(paths.skillsDir),
       logger: api.logger,
     });
@@ -51,10 +58,13 @@ export default definePluginEntry({
       const prompt = event.prompt ?? "";
       const selected = config.autoDetectCode
         ? detectRelevantSkills(prompt, skills)
-        : skills.has("using-superpowers") ? ["using-superpowers"] : [];
+        : skills.has("using-superpowers")
+          ? [{ name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false }]
+          : [];
+      latestMatches = selected;
 
       return {
-        appendSystemContext: buildPromptContext(skills, selected),
+        appendSystemContext: buildPromptContext(skills, selected, activeSkill),
       };
     };
 

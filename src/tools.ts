@@ -1,4 +1,6 @@
 import { getGitStatus, updateSkillsCache } from "./git-cache.ts";
+import { deriveActiveSkillLabel } from "./prompt.ts";
+import type { ActiveSkillLabel, SkillMatch } from "./prompt.ts";
 import type { SkillRecord } from "./skills.ts";
 
 interface ToolContent {
@@ -23,6 +25,8 @@ export interface ToolFactoryInput {
   githubTokenConfigured: boolean;
   githubToken?: string;
   cacheDir: string;
+  getLatestMatches(): SkillMatch[];
+  setActiveSkill(activeSkill: ActiveSkillLabel | null): void;
   reloadSkills(): Map<string, SkillRecord>;
   logger: Pick<Console, "info" | "error">;
 }
@@ -52,6 +56,7 @@ export function createTools(input: ToolFactoryInput): {
       if (!skill) {
         return text(`Skill '${name}' not found. Available skills: ${[...input.skills.keys()].sort().join(", ")}`);
       }
+      input.setActiveSkill(deriveActiveSkillLabel(name, input.getLatestMatches()));
 
       return text([
         `Skill: ${skill.name}`,

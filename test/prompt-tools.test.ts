@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPromptContext, detectRelevantSkills } from "../src/prompt.ts";
+import { buildPromptContext, deriveActiveSkillLabel, detectRelevantSkills } from "../src/prompt.ts";
 import { createTools } from "../src/tools.ts";
 import type { SkillRecord } from "../src/skills.ts";
 
@@ -31,37 +31,77 @@ function registry(): Map<string, SkillRecord> {
 }
 
 test("detectRelevantSkills always includes using-superpowers when present", () => {
-  assert.deepEqual(detectRelevantSkills("hello", registry()), ["using-superpowers"]);
+  assert.deepEqual(detectRelevantSkills("hello", registry()), [
+    { name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false },
+  ]);
 });
 
 test("detectRelevantSkills adds debugging skill for bug prompts", () => {
-  assert.deepEqual(detectRelevantSkills("fix this bug", registry()), ["using-superpowers", "systematic-debugging"]);
+  assert.deepEqual(detectRelevantSkills("fix this bug", registry()), [
+    { name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false },
+    { name: "systematic-debugging", matchedKeywords: ["bug"], usedSuperpowersBoost: false },
+  ]);
 });
 
 test("detectRelevantSkills adds brainstorming for planning-style prompts", () => {
-  assert.deepEqual(detectRelevantSkills("先比较方案和取舍，再决定怎么做", registry()), ["using-superpowers", "brainstorming"]);
+  assert.deepEqual(detectRelevantSkills("先比较方案和取舍，再决定怎么做", registry()), [
+    { name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false },
+    { name: "brainstorming", matchedKeywords: ["比较方案", "取舍"], usedSuperpowersBoost: false },
+  ]);
 });
 
 test("detectRelevantSkills boosts explicit superpowers requests", () => {
   assert.deepEqual(
     detectRelevantSkills("用 superpowers 帮我调试这个报错", registry()),
-    ["using-superpowers", "systematic-debugging"]
+    [
+      { name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false },
+      { name: "systematic-debugging", matchedKeywords: ["报错", "调试"], usedSuperpowersBoost: true },
+    ]
   );
 });
 
 test("buildPromptContext names sp_skill as the invocation tool", () => {
-  const context = buildPromptContext(registry(), ["using-superpowers"]);
+  const context = buildPromptContext(registry(), [
+    { name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false },
+  ]);
   assert.match(context, /sp_skill/);
   assert.match(context, /using-superpowers/);
 });
 
+test("buildPromptContext includes the active skill label instruction", () => {
+  const context = buildPromptContext(
+    registry(),
+    [{ name: "brainstorming", matchedKeywords: ["方案", "取舍"], usedSuperpowersBoost: true }],
+    { name: "brainstorming", indicators: ["方案", "取舍", "superpowers"] },
+  );
+  assert.match(context, /\*⚡ brainstorming \| 方案, 取舍, superpowers\*/);
+});
+
+test("deriveActiveSkillLabel returns null for using-superpowers", () => {
+  assert.equal(deriveActiveSkillLabel("using-superpowers", []), null);
+});
+
+test("deriveActiveSkillLabel uses matched keywords and superpowers boost", () => {
+  assert.deepEqual(
+    deriveActiveSkillLabel("brainstorming", [
+      { name: "brainstorming", matchedKeywords: ["方案", "取舍"], usedSuperpowersBoost: true },
+    ]),
+    { name: "brainstorming", indicators: ["方案", "取舍", "superpowers"] },
+  );
+});
+
 test("sp_skill returns OpenClaw content format", async () => {
+  let activeSkill = "unset";
   const tools = createTools({
     skills: registry(),
     repoUrl: "https://github.com/obra/superpowers.git",
     githubTokenConfigured: false,
     githubToken: undefined,
     cacheDir: "/missing",
+    getLatestMatches: () => [{ name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false }],
+    setActiveSkill: (nextActiveSkill) => {
+      activeSkill = nextActiveSkill === null ? "cleared" : "set";
+    },
     reloadSkills: () => registry(),
     logger: console
   });
@@ -69,4 +109,25 @@ test("sp_skill returns OpenClaw content format", async () => {
   const result = await tools.spSkill.execute("call-1", { name: "using-superpowers" });
   assert.equal(result.content[0].type, "text");
   assert.match(result.content[0].text, /# Using Superpowers/);
+  assert.equal(activeSkill, "cleared");
+});
+
+test("sp_skill stores active label only after successful non-base skill load", async () => {
+  let activeSkill = null;
+  const tools = createTools({
+    skills: registry(),
+    repoUrl: "https://github.com/obra/superpowers.git",
+    githubTokenConfigured: false,
+    githubToken: undefined,
+    cacheDir: "/missing",
+    getLatestMatches: () => [{ name: "brainstorming", matchedKeywords: ["方案", "取舍"], usedSuperpowersBoost: true }],
+    setActiveSkill: (nextActiveSkill) => {
+      activeSkill = nextActiveSkill;
+    },
+    reloadSkills: () => registry(),
+    logger: console
+  });
+
+  await tools.spSkill.execute("call-2", { name: "brainstorming" });
+  assert.deepEqual(activeSkill, { name: "brainstorming", indicators: ["方案", "取舍", "superpowers"] });
 });
