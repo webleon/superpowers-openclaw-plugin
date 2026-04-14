@@ -1,6 +1,6 @@
 {
   "name": "superpowers-openclaw-plugin",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "OpenClaw plugin that bridges to Superpowers workflow skills from obra/superpowers",
   "type": "module",
   "main": "index.ts",

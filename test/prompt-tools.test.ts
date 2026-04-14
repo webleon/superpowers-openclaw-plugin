@@ -171,7 +171,7 @@ test("sp_skill stores active label only after successful non-base skill load", a
     logger: console
   });
 
-  await tools.spSkill.execute("call-2", { name: "brainstorming" });
+  const result = await tools.spSkill.execute("call-2", { name: "brainstorming" });
   assert.deepEqual(activeSkill, { name: "brainstorming", indicators: ["方案", "取舍", "superpowers"] });
   assert.deepEqual(lastActivation, {
     skillName: "brainstorming",
@@ -180,6 +180,9 @@ test("sp_skill stores active label only after successful non-base skill load", a
     usedSuperpowersBoost: true,
     source: "sp_skill",
   });
+  assert.match(result.content[0].text, /Activation label for the immediate next assistant reply:/);
+  assert.match(result.content[0].text, /\*⚡ brainstorming \| 方案, 取舍, superpowers\*/);
+  assert.match(result.content[0].text, /Show the label exactly once/);
 });
 
 test("sp_status reports the last real activation", async () => {

@@ -136,7 +136,7 @@ export function buildPromptContext(
     sections.push(
       "",
       "When answering the user, format the start of the same reply exactly like this:",
-      buildActivationLabel(activeSkill),
+      formatActivationLabel(activeSkill),
       "",
       "───",
       "",
@@ -194,7 +194,7 @@ export function deriveActiveSkillLabel(skillName: string, matches: SkillMatch[])
   return { name: skillName, indicators };
 }
 
-function buildActivationLabel(activeSkill: ActiveSkillLabel): string {
+export function formatActivationLabel(activeSkill: ActiveSkillLabel): string {
   if (activeSkill.indicators.length === 0) {
     return `*⚡ ${activeSkill.name}*`;
   }

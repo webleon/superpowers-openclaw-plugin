@@ -1,5 +1,5 @@
 import { getGitStatus, updateSkillsCache } from "./git-cache.ts";
-import { deriveActiveSkillLabel } from "./prompt.ts";
+import { deriveActiveSkillLabel, formatActivationLabel } from "./prompt.ts";
 import type { ActiveSkillLabel, SkillMatch } from "./prompt.ts";
 import type { SkillRecord } from "./skills.ts";
 
@@ -68,7 +68,8 @@ export function createTools(input: ToolFactoryInput): {
         return text(`Skill '${name}' not found. Available skills: ${[...input.skills.keys()].sort().join(", ")}`);
       }
       const latestMatch = input.getLatestMatches().find((match) => match.name === name);
-      input.setActiveSkill(deriveActiveSkillLabel(name, input.getLatestMatches()));
+      const activeSkillLabel = deriveActiveSkillLabel(name, input.getLatestMatches());
+      input.setActiveSkill(activeSkillLabel);
       input.setLastActivation({
         skillName: name,
         activatedAt: new Date().toISOString(),
@@ -77,7 +78,22 @@ export function createTools(input: ToolFactoryInput): {
         source: "sp_skill",
       });
 
+      const activationInstructions = activeSkillLabel
+        ? [
+            "Activation label for the immediate next assistant reply:",
+            formatActivationLabel(activeSkillLabel),
+            "",
+            "Use that exact label as the first line of the same reply after this tool call.",
+            "Then output a blank line,",
+            "───",
+            "another blank line, and continue with the actual answer.",
+            "Show the label exactly once and do not send it as a separate message.",
+            "",
+          ]
+        : [];
+
       return text([
+        ...activationInstructions,
         `Skill: ${skill.name}`,
         `Description: ${skill.description}`,
         `Path: ${skill.path}`,
