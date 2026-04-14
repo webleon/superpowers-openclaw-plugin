@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
 import { getCachePaths, getGitStatus } from "../src/git-cache.ts";
 
@@ -13,4 +15,13 @@ test("getGitStatus reports unavailable cache when cache metadata is missing", ()
   assert.equal(result.success, false);
   assert.equal(result.repoUrl, "https://github.com/obra/superpowers.git");
   assert.equal(result.loaded, false);
+});
+
+test("getGitStatus tolerates sync lock directories without metadata", () => {
+  const cacheDir = mkdtempSync("/tmp/sp-cache-test-");
+  mkdirSync(join(cacheDir, ".sync-lock"));
+  const result = getGitStatus(cacheDir, "https://github.com/obra/superpowers.git");
+  assert.equal(result.success, false);
+  assert.equal(result.loaded, false);
+  rmSync(cacheDir, { recursive: true, force: true });
 });

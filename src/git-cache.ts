@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import * as fs from "node:fs";
 import { get as httpsGet } from "node:https";
 import { dirname, join } from "node:path";
@@ -33,6 +33,7 @@ interface GitHubRepo {
 }
 
 const METADATA_FILE = "superpowers-cache.json";
+const LOCK_DIR = ".sync-lock";
 
 export function getCachePaths(pluginDir: string): CachePaths {
   const cacheDir = join(pluginDir, ".superpowers-cache");
@@ -84,41 +85,47 @@ async function syncSkillsCache(cacheDir: string, repoUrl: string): Promise<GitRe
     return { success: false, message: `Only GitHub repo URLs are supported for safe sync: ${repoUrl}` };
   }
 
-  try {
-    const commit = await fetchJson<{
-      sha: string;
-      commit: { committer?: { date?: string }; author?: { date?: string } };
-    }>(`https://api.github.com/repos/${repo.owner}/${repo.repo}/commits/${repo.branch}`);
-    const tree = await fetchJson<{
-      tree: Array<{ path: string; type: string; url: string }>;
-    }>(`https://api.github.com/repos/${repo.owner}/${repo.repo}/git/trees/${commit.sha}?recursive=1`);
+  mkdirSync(cacheDir, { recursive: true });
+  return withCacheLock(cacheDir, async () => {
+    try {
+      const commit = await fetchJson<{
+        sha: string;
+        commit: { committer?: { date?: string }; author?: { date?: string } };
+      }>(`https://api.github.com/repos/${repo.owner}/${repo.repo}/commits/${repo.branch}`);
+      const tree = await fetchJson<{
+        tree: Array<{ path: string; type: string; url: string }>;
+      }>(`https://api.github.com/repos/${repo.owner}/${repo.repo}/git/trees/${commit.sha}?recursive=1`);
 
-    const skillFiles = tree.tree.filter((entry) => entry.type === "blob" && entry.path.startsWith("skills/"));
-    const nextSkillsDir = join(cacheDir, "skills.next");
-    const skillsDir = join(cacheDir, "skills");
+      const skillFiles = tree.tree.filter((entry) => entry.type === "blob" && entry.path.startsWith("skills/"));
+      const nextSkillsDir = mkdtempSync(join(cacheDir, "skills.next-"));
+      const skillsDir = join(cacheDir, "skills");
 
-    rmSync(nextSkillsDir, { recursive: true, force: true });
-    mkdirSync(nextSkillsDir, { recursive: true });
+      try {
+        for (const entry of skillFiles) {
+          const target = join(nextSkillsDir, entry.path.slice("skills/".length));
+          mkdirSync(dirname(target), { recursive: true });
+          const source = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${commit.sha}/${entry.path}`;
+          writeFileSync(target, await fetchText(source), "utf8");
+        }
 
-    for (const entry of skillFiles) {
-      const target = join(nextSkillsDir, entry.path.slice("skills/".length));
-      mkdirSync(dirname(target), { recursive: true });
-      const source = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${commit.sha}/${entry.path}`;
-      writeFileSync(target, await fetchText(source), "utf8");
+        rmSync(skillsDir, { recursive: true, force: true });
+        fs.renameSync(nextSkillsDir, skillsDir);
+      } catch (error) {
+        rmSync(nextSkillsDir, { recursive: true, force: true });
+        throw error;
+      }
+
+      writeFileSync(join(cacheDir, METADATA_FILE), JSON.stringify({
+        repoUrl,
+        commit: commit.sha,
+        date: commit.commit.committer?.date ?? commit.commit.author?.date,
+      } satisfies CacheMetadata, null, 2), "utf8");
+
+      return { success: true, message: `Skills synced at ${commit.sha.slice(0, 7)} (${skillFiles.length} files)` };
+    } catch (error) {
+      return { success: false, message: errorMessage(error) };
     }
-
-    rmSync(skillsDir, { recursive: true, force: true });
-    fs.renameSync(nextSkillsDir, skillsDir);
-    writeFileSync(join(cacheDir, METADATA_FILE), JSON.stringify({
-      repoUrl,
-      commit: commit.sha,
-      date: commit.commit.committer?.date ?? commit.commit.author?.date,
-    } satisfies CacheMetadata, null, 2), "utf8");
-
-    return { success: true, message: `Skills synced at ${commit.sha.slice(0, 7)} (${skillFiles.length} files)` };
-  } catch (error) {
-    return { success: false, message: errorMessage(error) };
-  }
+  });
 }
 
 function parseGitHubRepo(repoUrl: string): GitHubRepo | null {
@@ -136,7 +143,7 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 async function fetchText(url: string): Promise<string> {
-  return requestText(url, 0);
+  return requestWithRetry(url, 2);
 }
 
 async function requestText(url: string, redirectCount: number): Promise<string> {
@@ -176,6 +183,62 @@ async function requestText(url: string, redirectCount: number): Promise<string> 
     });
     request.on("error", reject);
   });
+}
+
+async function requestWithRetry(url: string, retries: number): Promise<string> {
+  try {
+    return await requestText(url, 0);
+  } catch (error) {
+    if (retries <= 0 || !isTransientNetworkError(error)) {
+      throw error;
+    }
+    await sleep(300);
+    return requestWithRetry(url, retries - 1);
+  }
+}
+
+async function withCacheLock<T>(cacheDir: string, work: () => Promise<T>): Promise<T> {
+  const lockPath = join(cacheDir, LOCK_DIR);
+  const deadline = Date.now() + 30000;
+
+  while (true) {
+    try {
+      mkdirSync(lockPath);
+      break;
+    } catch (error) {
+      if (!isAlreadyExistsError(error)) {
+        throw error;
+      }
+
+      if (Date.now() >= deadline) {
+        throw new Error("Timed out waiting for skills cache lock");
+      }
+
+      await sleep(250);
+    }
+  }
+
+  try {
+    return await work();
+  } finally {
+    rmSync(lockPath, { recursive: true, force: true });
+  }
+}
+
+function isAlreadyExistsError(error: unknown): boolean {
+  return typeof error === "object"
+    && error !== null
+    && "code" in error
+    && (error as { code?: string }).code === "EEXIST";
+}
+
+function isTransientNetworkError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return /socket hang up|ECONNRESET|ETIMEDOUT|EAI_AGAIN/i.test(error.message);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function errorMessage(error: unknown): string {

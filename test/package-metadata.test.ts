@@ -16,6 +16,7 @@ test("package identity uses the owned npm package and repository", () => {
 
 test("manifest declares namespaced tools owned by this plugin", () => {
   assert.equal(manifest.id, "superpowers-openclaw-plugin");
+  assert.equal(manifest.version, packageJson.version);
   assert.deepEqual(manifest.contracts.tools, ["sp_skill", "sp_update", "sp_status"]);
 });
 
