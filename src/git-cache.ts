@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import * as fs from "node:fs";
+import { get as httpsGet } from "node:https";
 import { dirname, join } from "node:path";
 
 export interface CachePaths {
@@ -131,15 +132,50 @@ function parseGitHubRepo(repoUrl: string): GitHubRepo | null {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, { headers: { "User-Agent": "superpowers-openclaw-plugin" } });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${url}`);
-  return response.json() as Promise<T>;
+  return JSON.parse(await fetchText(url)) as T;
 }
 
 async function fetchText(url: string): Promise<string> {
-  const response = await fetch(url, { headers: { "User-Agent": "superpowers-openclaw-plugin" } });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${url}`);
-  return response.text();
+  return requestText(url, 0);
+}
+
+async function requestText(url: string, redirectCount: number): Promise<string> {
+  if (redirectCount > 5) {
+    throw new Error(`Too many redirects: ${url}`);
+  }
+
+  return new Promise((resolve, reject) => {
+    const request = httpsGet(url, {
+      headers: { "User-Agent": "superpowers-openclaw-plugin" },
+    }, (response) => {
+      const statusCode = response.statusCode ?? 0;
+      const location = response.headers.location;
+
+      if (statusCode >= 300 && statusCode < 400 && location) {
+        response.resume();
+        resolve(requestText(new URL(location, url).toString(), redirectCount + 1));
+        return;
+      }
+
+      if (statusCode < 200 || statusCode >= 300) {
+        response.resume();
+        reject(new Error(`${statusCode} ${response.statusMessage ?? "Request failed"}: ${url}`));
+        return;
+      }
+
+      response.setEncoding("utf8");
+      let body = "";
+      response.on("data", (chunk) => {
+        body += chunk;
+      });
+      response.on("end", () => resolve(body));
+    });
+
+    request.setTimeout(15000, () => {
+      request.destroy(new Error(`Request timeout: ${url}`));
+    });
+    request.on("error", reject);
+  });
 }
 
 function errorMessage(error: unknown): string {
