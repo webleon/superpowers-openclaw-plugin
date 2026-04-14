@@ -9,7 +9,7 @@
 ### npm
 
 ```bash
-openclaw plugins install openclaw-superpowers-plugin
+openclaw plugins install superpowers-openclaw-plugin
 openclaw gateway restart
 ```
 
@@ -28,7 +28,7 @@ openclaw gateway restart
 {
   "plugins": {
     "entries": {
-      "openclaw-superpowers-plugin": {
+      "superpowers-openclaw-plugin": {
         "enabled": true,
         "config": {
           "autoDetectCode": true,
@@ -42,7 +42,7 @@ openclaw gateway restart
 }
 ```
 
-插件启用开关使用 `plugins.entries.openclaw-superpowers-plugin.enabled`；不要在 `config` 里再放一个 `enabled`。
+插件启用开关使用 `plugins.entries.superpowers-openclaw-plugin.enabled`；不要在 `config` 里再放一个 `enabled`。
 
 ## 工具
 
@@ -109,4 +109,4 @@ npm publish
 
 - 插件仓库：https://github.com/webleon/superpowers-openclaw-plugin
 - 上游 Superpowers：https://github.com/obra/superpowers
-- npm 包：https://www.npmjs.com/package/openclaw-superpowers-plugin
+- npm 包：https://www.npmjs.com/package/superpowers-openclaw-plugin

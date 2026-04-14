@@ -66,7 +66,7 @@ export function createTools(input: ToolFactoryInput): {
     description: "Pull the latest upstream Superpowers skills and reload the registry.",
     parameters: { type: "object", properties: {} },
     async execute() {
-      const result = updateSkillsCache(input.cacheDir);
+      const result = await updateSkillsCache(input.cacheDir, input.repoUrl);
       if (!result.success) return text(`Update failed: ${result.message}`);
 
       const next = input.reloadSkills();

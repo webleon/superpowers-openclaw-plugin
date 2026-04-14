@@ -9,7 +9,7 @@ The plugin keeps its own lightweight OpenClaw bridge skill in this package and d
 ### npm
 
 ```bash
-openclaw plugins install openclaw-superpowers-plugin
+openclaw plugins install superpowers-openclaw-plugin
 openclaw gateway restart
 ```
 
@@ -28,7 +28,7 @@ Enable or configure it in `~/.openclaw/openclaw.json`:
 {
   "plugins": {
     "entries": {
-      "openclaw-superpowers-plugin": {
+      "superpowers-openclaw-plugin": {
         "enabled": true,
         "config": {
           "autoDetectCode": true,
@@ -42,7 +42,7 @@ Enable or configure it in `~/.openclaw/openclaw.json`:
 }
 ```
 
-The plugin-level `enabled` flag belongs on `plugins.entries.openclaw-superpowers-plugin.enabled`; it is not duplicated inside `config`.
+The plugin-level `enabled` flag belongs on `plugins.entries.superpowers-openclaw-plugin.enabled`; it is not duplicated inside `config`.
 
 ## Tools
 
@@ -109,4 +109,4 @@ npm publish
 
 - Plugin repository: https://github.com/webleon/superpowers-openclaw-plugin
 - Upstream Superpowers: https://github.com/obra/superpowers
-- npm package: https://www.npmjs.com/package/openclaw-superpowers-plugin
+- npm package: https://www.npmjs.com/package/superpowers-openclaw-plugin
