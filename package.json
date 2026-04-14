@@ -1,5 +1,5 @@
 {
-  "name": "openclaw-superpowers-plugin",
+  "name": "superpowers-openclaw-plugin",
   "version": "0.1.0",
   "description": "OpenClaw plugin that bridges to Superpowers workflow skills from obra/superpowers",
   "type": "module",
@@ -20,7 +20,7 @@
       "entry": "./index.ts"
     },
     "install": {
-      "npmSpec": "openclaw-superpowers-plugin",
+      "npmSpec": "superpowers-openclaw-plugin",
       "localPathHint": "~/.openclaw/workspace/plugins/superpowers-openclaw-plugin"
     }
   },

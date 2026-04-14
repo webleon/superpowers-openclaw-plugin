@@ -9,7 +9,7 @@
 ### npm
 
 ```bash
-openclaw plugins install openclaw-superpowers-plugin
+openclaw plugins install superpowers-openclaw-plugin
 openclaw gateway restart
 ```
 
@@ -109,4 +109,4 @@ npm publish
 
 - 插件仓库：https://github.com/webleon/superpowers-openclaw-plugin
 - 上游 Superpowers：https://github.com/obra/superpowers
-- npm 包：https://www.npmjs.com/package/openclaw-superpowers-plugin
+- npm 包：https://www.npmjs.com/package/superpowers-openclaw-plugin
