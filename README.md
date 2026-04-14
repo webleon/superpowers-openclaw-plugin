@@ -1,46 +1,40 @@
-# Superpowers Bridge for OpenClaw
+# OpenClaw Superpowers Plugin
 
-An OpenClaw plugin that automatically fetches and loads Superpowers workflow skills from GitHub.
+OpenClaw plugin that bridges to the upstream [obra/superpowers](https://github.com/obra/superpowers) workflow skills.
 
-Based on the [obra/superpowers](https://github.com/obra/superpowers) project.
+The plugin keeps its own lightweight OpenClaw bridge skill in this package and downloads upstream Superpowers skills into a local Git cache at runtime. Updating the upstream skills does not require republishing the plugin.
 
-## Features
+## Install
 
-- ✅ **Auto-fetch skills** - Automatically clones skills from GitHub on first launch
-- ✅ **Smart detection** - Intelligently loads relevant skills based on conversation context
-- ✅ **Manual loading** - Provides `skill` tool for assistants to explicitly load skills
-- ✅ **Version management** - Built-in tools to update and check skills version
-- ✅ **Optional auto-update** - Configurable automatic updates on startup
-
-## Installation
-
-### Option A: npm Install (Easiest)
+### npm
 
 ```bash
-openclaw plugins install @vruru/superpowers-bridge
+openclaw plugins install openclaw-superpowers-plugin
 openclaw gateway restart
 ```
 
-This automatically installs and enables the plugin.
-
-### Option B: Git Clone
+### Local source
 
 ```bash
 cd ~/.openclaw/workspace/plugins
-git clone https://github.com/vruru/superpowers-bridge.git
+git clone https://github.com/webleon/superpowers-openclaw-plugin.git
+openclaw plugins install ./superpowers-openclaw-plugin
+openclaw gateway restart
 ```
 
-Then enable in `~/.openclaw/openclaw.json`:
+Enable or configure it in `~/.openclaw/openclaw.json`:
 
 ```json
 {
   "plugins": {
     "entries": {
-      "superpowers-bridge": {
+      "openclaw-superpowers-plugin": {
         "enabled": true,
         "config": {
-          "enabled": true,
-          "autoDetectCode": true
+          "autoDetectCode": true,
+          "autoUpdate": false,
+          "skillsRepo": "https://github.com/obra/superpowers.git",
+          "docsPath": "docs/superpowers"
         }
       }
     }
@@ -48,64 +42,15 @@ Then enable in `~/.openclaw/openclaw.json`:
 }
 ```
 
-### Option C: Download ZIP
+The plugin-level `enabled` flag belongs on `plugins.entries.openclaw-superpowers-plugin.enabled`; it is not duplicated inside `config`.
 
-1. Click **Code** → **Download ZIP** on the repository page
-2. Extract the downloaded `superpowers-bridge-main/` directory
-3. Rename and copy to plugins directory:
+## Tools
 
-```bash
-mv ~/Downloads/superpowers-bridge-main ~/.openclaw/workspace/plugins/superpowers-bridge
-```
+- `sp_skill`: load a specific upstream Superpowers `SKILL.md` by name.
+- `sp_status`: show cache status, loaded skill count, upstream repo, and commit info.
+- `sp_update`: run `git pull --ff-only` for the upstream Superpowers cache and reload skills.
 
-Then enable as shown in Option B.
-
-### Post-Installation
-
-After installation, the directory structure should be:
-
-```
-~/.openclaw/workspace/plugins/superpowers-bridge/
-├── index.ts
-├── README.md
-├── package.json
-├── openclaw.plugin.json
-└── .gitignore
-```
-
-Restart OpenClaw:
-
-```bash
-openclaw gateway restart
-```
-
-Skills will be automatically downloaded from GitHub on first startup (takes a few seconds).
-
-## Configuration Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable/disable the plugin |
-| `skillsRepo` | string | `obra/superpowers` | GitHub repository for skills |
-| `autoDetectCode` | boolean | `true` | Auto-detect code tasks and load relevant skills |
-| `autoUpdate` | boolean | `false` | Auto-update skills on startup (not recommended) |
-| `docsPath` | string | `docs/superpowers` | Path to save design documents |
-
-## Usage
-
-### Automatic Loading
-
-When you mention code-related tasks (e.g., "write code", "implement feature", "fix bug"), the plugin automatically loads relevant Superpowers skills:
-
-- **brainstorming** - Design phase before coding
-- **writing-plans** - Writing implementation plans
-- **subagent-driven-development** - Subagent-driven development
-- **test-driven-development** - Test-driven development
-- **systematic-debugging** - Systematic debugging
-
-### Manual Loading
-
-Assistants can use the `skill` tool to manually load specific skills:
+Example:
 
 ```json
 {
@@ -113,90 +58,55 @@ Assistants can use the `skill` tool to manually load specific skills:
 }
 ```
 
-### Update Skills
+Use that payload with `sp_skill`.
 
-Use the `update_superpowers_skills` tool to pull the latest skills from GitHub:
+## Configuration
 
-```json
-{}
-```
-
-Or check current version:
-
-```json
-{
-  "tool": "superpowers_version"
-}
-```
-
-## Updating the Plugin Itself
-
-To update the plugin manually:
-
-1. Download the latest version from GitHub releases
-2. Replace the plugin directory
-3. Restart OpenClaw
-
-Or if installed from source:
-
-```bash
-cd ~/.openclaw/workspace/plugins/superpowers-bridge
-git pull
-openclaw gateway restart
-```
-
-## Directory Structure
-
-```
-superpowers-bridge/
-├── index.ts                 # Plugin main code
-├── openclaw.plugin.json     # OpenClaw plugin config
-├── package.json             # npm config
-├── README.md                # This file
-└── .superpowers-cache/      # Auto-downloaded skills cache (auto-generated)
-    └── skills/              # Superpowers skills directory
-```
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `skillsRepo` | string | `https://github.com/obra/superpowers.git` | Upstream Superpowers Git repository. |
+| `autoDetectCode` | boolean | `true` | Adds compact Superpowers context for matching prompts. |
+| `autoUpdate` | boolean | `false` | Pulls upstream skills when the plugin starts. Keep disabled for predictable startup. |
+| `docsPath` | string | `docs/superpowers` | Default path used by Superpowers planning workflows. |
 
 ## How It Works
 
-1. **First launch**: Detects no cache → `git clone` obra/superpowers
-2. **Daily operation**: Loads skills from cache directory
-3. **Session start**: Analyzes user input → Matches relevant skills → Injects into system prompt
-4. **Update skills**: Call `update_superpowers_skills` → `git pull` → Reload
+1. On startup, the plugin checks `.superpowers-cache/` under the plugin directory.
+2. If missing, it clones `https://github.com/obra/superpowers.git`.
+3. It loads upstream `skills/*/SKILL.md` files into memory.
+4. It registers `sp_skill`, `sp_update`, and `sp_status`.
+5. It provides compact prompt guidance and a packaged OpenClaw bridge skill that tells agents to use `sp_skill`.
 
-## Troubleshooting
+The dynamic upstream cache is not listed as OpenClaw native skills in `openclaw.plugin.json`; only the packaged bridge skill is listed there.
 
-### Skills Not Auto-Downloading
+## Update Upstream Skills
 
-Check network connection and git availability:
-
-```bash
-git clone https://github.com/obra/superpowers.git /tmp/test-superpowers
-```
-
-### Check Cache Status
+Ask the assistant to call `sp_update`, or run from the cache directory:
 
 ```bash
-ls -la ~/.openclaw/workspace/plugins/superpowers-bridge/.superpowers-cache/
-cd ~/.openclaw/workspace/plugins/superpowers-bridge/.superpowers-cache
-git log --oneline -3
+cd ~/.openclaw/workspace/plugins/superpowers-openclaw-plugin/.superpowers-cache
+git pull --ff-only
 ```
 
-### Manual Re-download
+Then restart OpenClaw if you need a fresh session snapshot.
 
-Delete cache and restart:
+## Development
 
 ```bash
-rm -rf ~/.openclaw/workspace/plugins/superpowers-bridge/.superpowers-cache
-openclaw gateway restart
+npm test
+npm run pack:dry-run
 ```
 
-## License
+Before publishing a new version:
 
-MIT
+```bash
+npm test
+npm run pack:dry-run
+npm publish
+```
 
 ## Links
 
-- **Plugin Repository**: https://github.com/vruru/superpowers-bridge
-- **Superpowers Project**: https://github.com/obra/superpowers
-- **OpenClaw**: https://github.com/openclaw/openclaw
+- Plugin repository: https://github.com/webleon/superpowers-openclaw-plugin
+- Upstream Superpowers: https://github.com/obra/superpowers
+- npm package: https://www.npmjs.com/package/openclaw-superpowers-plugin

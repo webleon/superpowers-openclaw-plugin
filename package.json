@@ -1,26 +1,42 @@
 {
-  "name": "@vruru/superpowers-bridge",
-  "version": "2.1.0",
-  "description": "Bridge to Superpowers workflow skills for OpenClaw - auto-fetches from GitHub",
+  "name": "openclaw-superpowers-plugin",
+  "version": "0.1.0",
+  "description": "OpenClaw plugin that bridges to Superpowers workflow skills from obra/superpowers",
   "type": "module",
   "main": "index.ts",
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "pack:dry-run": "npm pack --dry-run"
+  },
   "keywords": ["openclaw", "superpowers", "skills", "workflow"],
-  "author": "vruru",
+  "author": "webleon",
   "license": "MIT",
   "openclaw": {
-    "extensions": ["./index.ts"]
+    "extensions": ["./index.ts"],
+    "compat": {
+      "minApiVersion": 1
+    },
+    "build": {
+      "entry": "./index.ts"
+    },
+    "install": {
+      "npmSpec": "openclaw-superpowers-plugin",
+      "localPathHint": "~/.openclaw/workspace/plugins/superpowers-openclaw-plugin"
+    }
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vruru/superpowers-bridge"
+    "url": "https://github.com/webleon/superpowers-openclaw-plugin"
   },
   "publishConfig": {
     "access": "public"
   },
   "files": [
     "index.ts",
+    "src/",
+    "skills/",
     "openclaw.plugin.json",
     "README.md",
-    "src/"
+    "README_zh.md"
   ]
 }
