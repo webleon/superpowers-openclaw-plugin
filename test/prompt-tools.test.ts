@@ -106,6 +106,7 @@ test("deriveActiveSkillLabel uses matched keywords and superpowers boost", () =>
 
 test("sp_skill returns OpenClaw content format", async () => {
   let activeSkill = "unset";
+  let lastActivation = null;
   const tools = createTools({
     skills: registry(),
     repoUrl: "https://github.com/obra/superpowers.git",
@@ -113,6 +114,10 @@ test("sp_skill returns OpenClaw content format", async () => {
     githubToken: undefined,
     cacheDir: "/missing",
     getLatestMatches: () => [{ name: "using-superpowers", matchedKeywords: [], usedSuperpowersBoost: false }],
+    getLastActivation: () => lastActivation,
+    setLastActivation: (nextActivation) => {
+      lastActivation = nextActivation;
+    },
     setActiveSkill: (nextActiveSkill) => {
       activeSkill = nextActiveSkill === null ? "cleared" : "set";
     },
@@ -124,10 +129,18 @@ test("sp_skill returns OpenClaw content format", async () => {
   assert.equal(result.content[0].type, "text");
   assert.match(result.content[0].text, /# Using Superpowers/);
   assert.equal(activeSkill, "cleared");
+  assert.deepEqual(lastActivation, {
+    skillName: "using-superpowers",
+    activatedAt: lastActivation.activatedAt,
+    matchedKeywords: [],
+    usedSuperpowersBoost: false,
+    source: "sp_skill",
+  });
 });
 
 test("sp_skill stores active label only after successful non-base skill load", async () => {
   let activeSkill = null;
+  let lastActivation = null;
   const tools = createTools({
     skills: registry(),
     repoUrl: "https://github.com/obra/superpowers.git",
@@ -135,6 +148,10 @@ test("sp_skill stores active label only after successful non-base skill load", a
     githubToken: undefined,
     cacheDir: "/missing",
     getLatestMatches: () => [{ name: "brainstorming", matchedKeywords: ["方案", "取舍"], usedSuperpowersBoost: true }],
+    getLastActivation: () => lastActivation,
+    setLastActivation: (nextActivation) => {
+      lastActivation = nextActivation;
+    },
     setActiveSkill: (nextActiveSkill) => {
       activeSkill = nextActiveSkill;
     },
@@ -144,4 +161,39 @@ test("sp_skill stores active label only after successful non-base skill load", a
 
   await tools.spSkill.execute("call-2", { name: "brainstorming" });
   assert.deepEqual(activeSkill, { name: "brainstorming", indicators: ["方案", "取舍", "superpowers"] });
+  assert.deepEqual(lastActivation, {
+    skillName: "brainstorming",
+    activatedAt: lastActivation.activatedAt,
+    matchedKeywords: ["方案", "取舍"],
+    usedSuperpowersBoost: true,
+    source: "sp_skill",
+  });
+});
+
+test("sp_status reports the last real activation", async () => {
+  const tools = createTools({
+    skills: registry(),
+    repoUrl: "https://github.com/obra/superpowers.git",
+    githubTokenConfigured: true,
+    githubToken: "token",
+    cacheDir: "/missing",
+    getLatestMatches: () => [],
+    getLastActivation: () => ({
+      skillName: "brainstorming",
+      activatedAt: "2026-04-14T09:00:00.000Z",
+      matchedKeywords: ["方案", "取舍"],
+      usedSuperpowersBoost: true,
+      source: "sp_skill",
+    }),
+    setLastActivation: () => {},
+    setActiveSkill: () => {},
+    reloadSkills: () => registry(),
+    logger: console
+  });
+
+  const result = await tools.spStatus.execute("call-3", {});
+  assert.match(result.content[0].text, /Last activation: brainstorming/);
+  assert.match(result.content[0].text, /Activation source: sp_skill/);
+  assert.match(result.content[0].text, /Matched keywords: 方案, 取舍/);
+  assert.match(result.content[0].text, /Superpowers boost: true/);
 });

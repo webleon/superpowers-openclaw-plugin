@@ -19,6 +19,7 @@ export default definePluginEntry({
     const paths = getCachePaths(pluginDir);
     let latestMatches: SkillMatch[] = [];
     let pendingReplyLabel: ActiveSkillLabel | null = null;
+    let lastActivation = null;
 
     const ensureResult = await ensureSkillsCache(pluginDir, config.skillsRepo, config.githubToken);
     if (!ensureResult.success) {
@@ -42,6 +43,10 @@ export default definePluginEntry({
       githubToken: config.githubToken,
       cacheDir: paths.cacheDir,
       getLatestMatches: () => latestMatches,
+      getLastActivation: () => lastActivation,
+      setLastActivation: (activation) => {
+        lastActivation = activation;
+      },
       setActiveSkill: (nextActiveSkill) => {
         pendingReplyLabel = nextActiveSkill;
       },

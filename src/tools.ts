@@ -19,6 +19,14 @@ interface ToolDefinition {
   execute(id: string, params: Record<string, unknown>): Promise<ToolResult>;
 }
 
+interface ActivationRecord {
+  skillName: string;
+  activatedAt: string;
+  matchedKeywords: string[];
+  usedSuperpowersBoost: boolean;
+  source: "sp_skill";
+}
+
 export interface ToolFactoryInput {
   skills: Map<string, SkillRecord>;
   repoUrl: string;
@@ -26,6 +34,8 @@ export interface ToolFactoryInput {
   githubToken?: string;
   cacheDir: string;
   getLatestMatches(): SkillMatch[];
+  getLastActivation(): ActivationRecord | null;
+  setLastActivation(activation: ActivationRecord | null): void;
   setActiveSkill(activeSkill: ActiveSkillLabel | null): void;
   reloadSkills(): Map<string, SkillRecord>;
   logger: Pick<Console, "info" | "error">;
@@ -56,7 +66,15 @@ export function createTools(input: ToolFactoryInput): {
       if (!skill) {
         return text(`Skill '${name}' not found. Available skills: ${[...input.skills.keys()].sort().join(", ")}`);
       }
+      const latestMatch = input.getLatestMatches().find((match) => match.name === name);
       input.setActiveSkill(deriveActiveSkillLabel(name, input.getLatestMatches()));
+      input.setLastActivation({
+        skillName: name,
+        activatedAt: new Date().toISOString(),
+        matchedKeywords: latestMatch?.matchedKeywords ?? [],
+        usedSuperpowersBoost: latestMatch?.usedSuperpowersBoost ?? false,
+        source: "sp_skill",
+      });
 
       return text([
         `Skill: ${skill.name}`,
@@ -89,6 +107,7 @@ export function createTools(input: ToolFactoryInput): {
     parameters: { type: "object", properties: {} },
     async execute() {
       const status = getGitStatus(input.cacheDir, input.repoUrl);
+      const lastActivation = input.getLastActivation();
       return text([
         `Repo: ${input.repoUrl}`,
         `Loaded skills: ${input.skills.size}`,
@@ -97,6 +116,11 @@ export function createTools(input: ToolFactoryInput): {
         status.commit ? `Commit: ${status.commit}` : undefined,
         status.date ? `Date: ${status.date}` : undefined,
         `Status: ${status.message}`,
+        lastActivation ? `Last activation: ${lastActivation.skillName}` : "Last activation: none",
+        lastActivation ? `Activated at: ${lastActivation.activatedAt}` : undefined,
+        lastActivation ? `Activation source: ${lastActivation.source}` : undefined,
+        lastActivation ? `Matched keywords: ${lastActivation.matchedKeywords.join(", ") || "none"}` : undefined,
+        lastActivation ? `Superpowers boost: ${lastActivation.usedSuperpowersBoost}` : undefined,
       ].filter(Boolean).join("\n"));
     },
   };
