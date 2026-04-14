@@ -2,7 +2,7 @@
 
 这是一个 OpenClaw 插件，用来桥接上游 [obra/superpowers](https://github.com/obra/superpowers) 工作流 skills。
 
-插件包内只提供一个轻量 OpenClaw bridge skill；真正的上游 Superpowers skills 会在运行时下载到本地 Git cache。以后更新上游 skills 不需要重新发布插件。
+插件包内只提供一个轻量 OpenClaw bridge skill；真正的上游 Superpowers skills 会在运行时同步到本地 cache。以后更新上游 skills 不需要重新发布插件。
 
 ## 安装
 
@@ -48,7 +48,7 @@ openclaw gateway restart
 
 - `sp_skill`：按名称加载上游 Superpowers `SKILL.md`。
 - `sp_status`：查看 cache 状态、已加载 skill 数量、上游仓库和 commit。
-- `sp_update`：对上游 Superpowers cache 执行 `git pull --ff-only` 并重新加载 skills。
+- `sp_update`：同步上游 Superpowers cache 并重新加载 skills。
 
 示例：
 
@@ -72,7 +72,7 @@ openclaw gateway restart
 ## 工作方式
 
 1. 启动时检查插件目录下的 `.superpowers-cache/`。
-2. 如果 cache 不存在，clone `https://github.com/obra/superpowers.git`。
+2. 如果 cache 不存在，会通过 GitHub 拉取上游 skill 树并把需要的文件落到本地。
 3. 从上游 `skills/*/SKILL.md` 加载 skills 到内存。
 4. 注册 `sp_skill`、`sp_update`、`sp_status`。
 5. 提供精简 prompt guidance，并通过包内 OpenClaw bridge skill 告诉 agent 使用 `sp_skill`。
@@ -81,14 +81,7 @@ openclaw gateway restart
 
 ## 更新上游 Skills
 
-让 assistant 调用 `sp_update`，或在 cache 目录手动运行：
-
-```bash
-cd ~/.openclaw/workspace/plugins/superpowers-openclaw-plugin/.superpowers-cache
-git pull --ff-only
-```
-
-如果需要新的 session skill 快照，更新后重启 OpenClaw。
+让 assistant 调用 `sp_update`。插件会通过自身的安全同步路径拉取上游 skill 树，并刷新内存中的 skill registry。
 
 ## 开发
 

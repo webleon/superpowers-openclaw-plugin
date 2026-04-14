@@ -9,50 +9,55 @@ import { createTools } from "./src/tools.ts";
 
 const pluginDir = dirname(fileURLToPath(import.meta.url));
 
-export default definePluginEntry(async (api) => {
-  const config = normalizeConfig(api.pluginConfig ?? {});
-  const paths = getCachePaths(pluginDir);
+export default definePluginEntry({
+  id: "superpowers-openclaw-plugin",
+  name: "Superpowers OpenClaw Plugin",
+  description: "Bridge to Superpowers workflow skills from obra/superpowers",
+  async register(api) {
+    const config = normalizeConfig(api.pluginConfig ?? {});
+    const paths = getCachePaths(pluginDir);
 
-  const ensureResult = await ensureSkillsCache(pluginDir, config.skillsRepo);
-  if (!ensureResult.success) {
-    api.logger.error(`[OpenClaw Superpowers] ${ensureResult.message}`);
-  }
-
-  if (config.autoUpdate && ensureResult.success) {
-    const updateResult = await updateSkillsCache(paths.cacheDir);
-    if (!updateResult.success) {
-      api.logger.error(`[OpenClaw Superpowers] auto-update failed: ${updateResult.message}`);
+    const ensureResult = await ensureSkillsCache(pluginDir, config.skillsRepo);
+    if (!ensureResult.success) {
+      api.logger.error(`[OpenClaw Superpowers] ${ensureResult.message}`);
     }
-  }
 
-  const skills = loadSkills(paths.skillsDir);
-  api.logger.info(`[OpenClaw Superpowers] loaded ${skills.size} upstream skills`);
+    if (config.autoUpdate && ensureResult.success) {
+      const updateResult = await updateSkillsCache(paths.cacheDir);
+      if (!updateResult.success) {
+        api.logger.error(`[OpenClaw Superpowers] auto-update failed: ${updateResult.message}`);
+      }
+    }
 
-  const tools = createTools({
-    skills,
-    repoUrl: config.skillsRepo,
-    cacheDir: paths.cacheDir,
-    reloadSkills: () => loadSkills(paths.skillsDir),
-    logger: api.logger,
-  });
+    const skills = loadSkills(paths.skillsDir);
+    api.logger.info(`[OpenClaw Superpowers] loaded ${skills.size} upstream skills`);
 
-  api.registerTool(tools.spSkill);
-  api.registerTool(tools.spUpdate);
-  api.registerTool(tools.spStatus);
+    const tools = createTools({
+      skills,
+      repoUrl: config.skillsRepo,
+      cacheDir: paths.cacheDir,
+      reloadSkills: () => loadSkills(paths.skillsDir),
+      logger: api.logger,
+    });
 
-  const promptHook = (event: { prompt?: string }) => {
-    if (skills.size === 0) return {};
-    const prompt = event.prompt ?? "";
-    const selected = config.autoDetectCode
-      ? detectRelevantSkills(prompt, skills)
-      : skills.has("using-superpowers") ? ["using-superpowers"] : [];
+    api.registerTool(tools.spSkill);
+    api.registerTool(tools.spUpdate);
+    api.registerTool(tools.spStatus);
 
-    return {
-      appendSystemContext: buildPromptContext(skills, selected),
+    const promptHook = (event: { prompt?: string }) => {
+      if (skills.size === 0) return {};
+      const prompt = event.prompt ?? "";
+      const selected = config.autoDetectCode
+        ? detectRelevantSkills(prompt, skills)
+        : skills.has("using-superpowers") ? ["using-superpowers"] : [];
+
+      return {
+        appendSystemContext: buildPromptContext(skills, selected),
+      };
     };
-  };
 
-  if (typeof api.on === "function") {
-    api.on("before_prompt_build", promptHook);
-  }
+    if (typeof api.on === "function") {
+      api.on("before_prompt_build", promptHook);
+    }
+  },
 });

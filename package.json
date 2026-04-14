@@ -1,6 +1,6 @@
 {
   "name": "superpowers-openclaw-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OpenClaw plugin that bridges to Superpowers workflow skills from obra/superpowers",
   "type": "module",
   "main": "index.ts",
@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/webleon/superpowers-openclaw-plugin"
+    "url": "git+https://github.com/webleon/superpowers-openclaw-plugin.git"
   },
   "publishConfig": {
     "access": "public"

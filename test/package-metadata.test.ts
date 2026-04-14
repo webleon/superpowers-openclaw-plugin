@@ -9,7 +9,7 @@ const manifest = JSON.parse(readFileSync("openclaw.plugin.json", "utf8"));
 
 test("package identity uses the owned npm package and repository", () => {
   assert.equal(packageJson.name, "superpowers-openclaw-plugin");
-  assert.equal(packageJson.repository.url, "https://github.com/webleon/superpowers-openclaw-plugin");
+  assert.equal(packageJson.repository.url, "git+https://github.com/webleon/superpowers-openclaw-plugin.git");
   assert.deepEqual(packageJson.openclaw.extensions, ["./index.ts"]);
   assert.equal(packageJson.openclaw.install.npmSpec, "superpowers-openclaw-plugin");
 });
@@ -32,6 +32,7 @@ test("manifest config schema omits duplicate enabled toggle", () => {
 test("entrypoint uses definePluginEntry and namespaced tool registrations", () => {
   const entrypoint = readFileSync("index.ts", "utf8");
   assert.match(entrypoint, /definePluginEntry/);
+  assert.match(entrypoint, /register\(api\)/);
   assert.match(entrypoint, /spSkill/);
   assert.match(entrypoint, /spUpdate/);
   assert.match(entrypoint, /spStatus/);

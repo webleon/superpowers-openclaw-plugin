@@ -2,7 +2,7 @@
 
 OpenClaw plugin that bridges to the upstream [obra/superpowers](https://github.com/obra/superpowers) workflow skills.
 
-The plugin keeps its own lightweight OpenClaw bridge skill in this package and downloads upstream Superpowers skills into a local Git cache at runtime. Updating the upstream skills does not require republishing the plugin.
+The plugin keeps its own lightweight OpenClaw bridge skill in this package and syncs upstream Superpowers skills into a local cache at runtime. Updating the upstream skills does not require republishing the plugin.
 
 ## Install
 
@@ -48,7 +48,7 @@ The plugin-level `enabled` flag belongs on `plugins.entries.superpowers-openclaw
 
 - `sp_skill`: load a specific upstream Superpowers `SKILL.md` by name.
 - `sp_status`: show cache status, loaded skill count, upstream repo, and commit info.
-- `sp_update`: run `git pull --ff-only` for the upstream Superpowers cache and reload skills.
+- `sp_update`: sync the upstream Superpowers cache and reload skills.
 
 Example:
 
@@ -72,7 +72,7 @@ Use that payload with `sp_skill`.
 ## How It Works
 
 1. On startup, the plugin checks `.superpowers-cache/` under the plugin directory.
-2. If missing, it clones `https://github.com/obra/superpowers.git`.
+2. If missing, it fetches the upstream skill tree from GitHub and stores the needed files locally.
 3. It loads upstream `skills/*/SKILL.md` files into memory.
 4. It registers `sp_skill`, `sp_update`, and `sp_status`.
 5. It provides compact prompt guidance and a packaged OpenClaw bridge skill that tells agents to use `sp_skill`.
@@ -81,14 +81,7 @@ The dynamic upstream cache is not listed as OpenClaw native skills in `openclaw.
 
 ## Update Upstream Skills
 
-Ask the assistant to call `sp_update`, or run from the cache directory:
-
-```bash
-cd ~/.openclaw/workspace/plugins/superpowers-openclaw-plugin/.superpowers-cache
-git pull --ff-only
-```
-
-Then restart OpenClaw if you need a fresh session snapshot.
+Ask the assistant to call `sp_update`. That syncs the upstream skill tree through the plugin's safe update path and refreshes the in-memory registry.
 
 ## Development
 
